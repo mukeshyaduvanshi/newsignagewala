@@ -50,6 +50,7 @@ export default function SignupPage() {
       <div className="grid min-h-svh max-h-svh lg:grid-cols-2">
         <div className="flex flex-1 items-start lg:items-center mt-30 lg:mt-0 justify-center">
           <div className="w-full max-w-xs">
+            {/* Signup Form */}
             <SignupForm />
           </div>
         </div>

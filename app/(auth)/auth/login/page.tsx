@@ -58,6 +58,7 @@ export default function LoginPage() {
         <div className=" grid min-h-svh  lg:grid-cols-2">
           <div className="flex lg:flex-1 lg:flex-row items-center mt-20 flex-col-reverse lg:mt-0  justify-end gap-10 lg:gap-0 lg:justify-center">
             <div className="w-full max-w-xs mb-10 lg:mb-0">
+              {/* Login Form */}
               <LoginForm />
             </div>
             <div className="lg:hidden  w-full px-4 max-w-[550px]">
