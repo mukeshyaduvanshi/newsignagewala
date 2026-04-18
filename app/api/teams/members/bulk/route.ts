@@ -34,9 +34,14 @@ export async function POST(req: NextRequest) {
     // Verify user is brand or vendor
     const brand = await User.findById(userId);
 
-    if (!brand || (brand.userType !== "brand" && brand.userType !== "vendor")) {
+    if (
+      !brand ||
+      (brand.userType !== "brand" &&
+        brand.userType !== "vendor" &&
+        brand.userType !== "admin")
+    ) {
       return NextResponse.json(
-        { error: "Access denied - Brand or Vendor only" },
+        { error: "Access denied - Brand, Vendor or Admin only" },
         { status: 403 },
       );
     }

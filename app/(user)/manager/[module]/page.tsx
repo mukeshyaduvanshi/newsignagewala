@@ -26,16 +26,18 @@ export default function ManagerModulePage() {
     team: "Team Member",
     "team-member": "Team Member",
     "team-members": "Team Member",
-    "created-sites": "Created Store",
-    "created-stores": "Created Store",
+    "created-sites": "Created-Sites",
+    "created-stores": "Created-Sites",
+    sites: "Created-Sites",
   };
 
-  const moduleName = moduleNameMap[module.toLowerCase()] ||
+  const moduleName =
+    moduleNameMap[module.toLowerCase()] ||
     module
       .split("-")
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join(" ");
-  
+
   // Get permissions for this module
   const permissions = useManagerPermissions(moduleName);
 
@@ -52,6 +54,26 @@ export default function ManagerModulePage() {
   }
 
   // Check if user has access to this module
+  if (permissions.isLoading) {
+    return <PageLoader message="Loading permissions..." />;
+  }
+
+  if (!permissions.hasSelectedBrand) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            No Brand Selected
+          </h2>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
+            Your account is not linked to a brand. Please contact your
+            administrator.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (!permissions.hasAccess || !permissions.canView) {
     return (
       <div className="flex h-96 items-center justify-center">
@@ -77,6 +99,7 @@ export default function ManagerModulePage() {
       case "racee":
         return <ComponentsManagerRacee permissions={permissions} />;
       case "created-sites":
+      case "sites":
         return <ComponentsManagerCreateSites permissions={permissions} />;
       case "campaigns":
         return (
@@ -88,8 +111,8 @@ export default function ManagerModulePage() {
       case "orders":
         return <ComponentsManagerOrders permissions={permissions} />;
       case "team":
-      // case "team-member":
-      // case "team-members":
+        // case "team-member":
+        // case "team-members":
         return <ComponentsManagerTeams permissions={permissions} />;
       default:
         return (

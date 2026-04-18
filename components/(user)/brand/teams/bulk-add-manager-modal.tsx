@@ -47,7 +47,7 @@ export function BulkAddManagerModal({
   managerType,
   uniqueKey,
 }: BulkAddManagerModalProps) {
-  const { accessToken,user } = useAuth();
+  const { accessToken, user } = useAuth();
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [validatedData, setValidatedData] = useState<ManagerRecord[]>([]);
   const [showValidationTable, setShowValidationTable] = useState(false);
@@ -58,7 +58,9 @@ export function BulkAddManagerModal({
   }>({});
   const [sendEmail, setSendEmail] = useState(false);
   const [isRevalidating, setIsRevalidating] = useState(false);
-  const [revalidatingRowIndex, setRevalidatingRowIndex] = useState<number | null>(null);
+  const [revalidatingRowIndex, setRevalidatingRowIndex] = useState<
+    number | null
+  >(null);
 
   // Parse CSV with proper handling of quoted fields
   const parseCSVLine = (line: string): string[] => {
@@ -77,14 +79,14 @@ export function BulkAddManagerModal({
         } else {
           inQuotes = !inQuotes;
         }
-      } else if (char === ',' && !inQuotes) {
+      } else if (char === "," && !inQuotes) {
         result.push(current.trim());
         current = "";
       } else {
         current += char;
       }
     }
-    
+
     result.push(current.trim());
     return result;
   };
@@ -93,7 +95,9 @@ export function BulkAddManagerModal({
     const lines = csvText.split("\n").filter((line) => line.trim());
     if (lines.length < 2) return [];
 
-    const headers = parseCSVLine(lines[0]).map((h) => h.toLowerCase().replace(/['"]/g, ""));
+    const headers = parseCSVLine(lines[0]).map((h) =>
+      h.toLowerCase().replace(/['"]/g, ""),
+    );
     const data: any[] = [];
 
     for (let i = 1; i < lines.length; i++) {
@@ -199,7 +203,7 @@ export function BulkAddManagerModal({
         data.forEach((record, index) => {
           const emailKey = `email:${record.email.toLowerCase()}`;
           const phoneKey = `phone:${record.phone}`;
-          
+
           if (existingKeys.has(emailKey) || existingKeys.has(phoneKey)) {
             record.existsInDB = true;
             record.errors.push("Manager already exists in database");
@@ -221,7 +225,7 @@ export function BulkAddManagerModal({
 
   // Handle file upload
   const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -246,7 +250,7 @@ export function BulkAddManagerModal({
       }
 
       let validated = parsed.map((record, index) =>
-        validateRecord(record, index)
+        validateRecord(record, index),
       );
 
       // Check duplicates (internal + database)
@@ -268,11 +272,11 @@ export function BulkAddManagerModal({
 
       if (invalidCount > 0) {
         toast.warning(
-          `${invalidCount} records have validation errors. Please fix them before uploading.`
+          `${invalidCount} records have validation errors. Please fix them before uploading.`,
         );
       } else {
         toast.success(
-          `All ${validCount} records are valid and ready for upload!`
+          `All ${validCount} records are valid and ready for upload!`,
         );
       }
     } catch (error) {
@@ -291,15 +295,15 @@ export function BulkAddManagerModal({
       };
       setValidatedData(updatedData);
     },
-    [validatedData]
+    [validatedData],
   );
 
   // Bulk revalidate all rows
   const handleBulkRevalidate = async () => {
     setIsRevalidating(true);
     try {
-      let revalidatedData = validatedData.map((record, index) => 
-        validateRecord(record, index)
+      let revalidatedData = validatedData.map((record, index) =>
+        validateRecord(record, index),
       );
 
       // Check duplicates (internal + database)
@@ -370,7 +374,7 @@ export function BulkAddManagerModal({
         ...record,
         index: newIndex,
       }));
-    
+
     const updatedErrors = { ...validationErrors };
     delete updatedErrors[rowIndex];
 
@@ -400,7 +404,7 @@ export function BulkAddManagerModal({
 
     if (invalidCount > 0) {
       toast.error(
-        `Please fix ${invalidCount} validation errors before uploading`
+        `Please fix ${invalidCount} validation errors before uploading`,
       );
       return;
     }
@@ -423,7 +427,10 @@ export function BulkAddManagerModal({
         sendEmail: sendEmail,
       }));
 
-      const url = user?.userType === "brand" ? "/api/teams/members/bulk" : "/api/teams/members/bulk-by-manager";
+      const url =
+        user?.userType === "brand" || user?.userType === "vendor"
+          ? "/api/teams/members/bulk"
+          : "/api/teams/members/bulk-by-manager";
 
       const response = await fetch(url, {
         method: "POST",
@@ -431,7 +438,10 @@ export function BulkAddManagerModal({
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ members: uploadData, parentId: user?.parentId || "" }),
+        body: JSON.stringify({
+          members: uploadData,
+          parentId: user?.parentId || "",
+        }),
       });
 
       const result = await response.json();
@@ -444,7 +454,7 @@ export function BulkAddManagerModal({
       toast.success(
         `Successfully uploaded ${
           result.data?.created || validRecords.length
-        } managers!`
+        } managers!`,
       );
 
       // Reset states
@@ -483,8 +493,8 @@ export function BulkAddManagerModal({
         <DialogHeader>
           <DialogTitle>Bulk Add {managerType}</DialogTitle>
           <DialogDescription>
-            Upload a CSV file to add multiple {managerType.toLowerCase()} at once. Review and edit
-            any validation errors before uploading.
+            Upload a CSV file to add multiple {managerType.toLowerCase()} at
+            once. Review and edit any validation errors before uploading.
           </DialogDescription>
         </DialogHeader>
 
@@ -505,13 +515,17 @@ export function BulkAddManagerModal({
           </div>
 
           <div className="rounded-md bg-muted p-3">
-            <p className="text-sm font-medium mb-2">File Format Requirements:</p>
+            <p className="text-sm font-medium mb-2">
+              File Format Requirements:
+            </p>
             <ul className="text-xs text-muted-foreground space-y-1">
               <li>• Required columns: Name, Email, Phone</li>
               <li>• Name: Minimum 2 characters</li>
               <li>• Email: Valid email format</li>
               <li>• Phone: Exactly 10 digits</li>
-              <li>• If name/email has commas, wrap in quotes: "Kumar, Rajesh"</li>
+              <li>
+                • If name/email has commas, wrap in quotes: "Kumar, Rajesh"
+              </li>
               <li>• No duplicate emails or phone numbers</li>
             </ul>
           </div>
@@ -580,8 +594,8 @@ export function BulkAddManagerModal({
                             isOrangeRow
                               ? "bg-orange-50 border-orange-200 text-black"
                               : isRedRow
-                              ? "bg-red-50 border-red-200 text-black"
-                              : "bg-green-50 border-green-200 text-black"
+                                ? "bg-red-50 border-red-200 text-black"
+                                : "bg-green-50 border-green-200 text-black"
                           }
                         >
                           <td className="p-2 border-b text-xs">{index + 1}</td>

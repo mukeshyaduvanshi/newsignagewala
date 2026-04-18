@@ -25,7 +25,12 @@ import {
   useReactTable,
   VisibilityState,
 } from "@tanstack/react-table";
-import { ArrowUpDown, ChevronDown, MoreHorizontal, Loader2 } from "lucide-react";
+import {
+  ArrowUpDown,
+  ChevronDown,
+  MoreHorizontal,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -66,13 +71,17 @@ interface ComponentsManagerTeamsProps {
   permissions: ModulePermissions;
 }
 
-const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) => {
+const ComponentsManagerTeams = ({
+  permissions,
+}: ComponentsManagerTeamsProps) => {
   const params = useParams();
   const { accessToken } = useAuth();
   const managers = params.managers as string | undefined;
   const formattedManagers =
     typeof managers === "string"
-      ? managers.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase())
+      ? managers
+          .replace(/([A-Z])/g, " $1")
+          .replace(/^./, (s) => s.toUpperCase())
       : "All Team Members";
 
   const [statusFilter, setStatusFilter] = useState("active");
@@ -113,11 +122,16 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
     managerType: "",
   });
   const [sendEmail, setSendEmail] = useState(false);
-  const [editingMember, setEditingMember] = useState<ManagerTeamMember | null>(null);
+  const [editingMember, setEditingMember] = useState<ManagerTeamMember | null>(
+    null,
+  );
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    [],
+  );
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
 
   // Fetch team authorities from dedicated manager API
@@ -147,7 +161,7 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
       setSearchQuery(query);
       fetchMembers(statusFilter, 1, query);
     },
-    [statusFilter, fetchMembers]
+    [statusFilter, fetchMembers],
   );
 
   const handleAddMember = async () => {
@@ -157,7 +171,9 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
     }
     // If no specific authority selected, require role selection
     const selectedUniqueKey = managers || formData.uniqueKey;
-    const selectedManagerType = managers ? formattedManagers : formData.managerType;
+    const selectedManagerType = managers
+      ? formattedManagers
+      : formData.managerType;
 
     if (!selectedUniqueKey || !selectedManagerType) {
       toast.error("Please select a role for this team member");
@@ -176,7 +192,9 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
       });
 
       if (result.isExistingUser) {
-        toast.success(`Existing user added as ${selectedManagerType} successfully!`);
+        toast.success(
+          `Existing user added as ${selectedManagerType} successfully!`,
+        );
       } else {
         toast.success(`Team member added! Default password: Welcome@123`);
       }
@@ -195,7 +213,13 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
         setMembers((prev) => [newMember, ...prev].slice(0, 20));
       }
 
-      setFormData({ name: "", email: "", phone: "", uniqueKey: "", managerType: "" });
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        uniqueKey: "",
+        managerType: "",
+      });
       setSendEmail(false);
       setAddDialogOpen(false);
     } catch (error: any) {
@@ -206,7 +230,12 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
   };
 
   const handleEditMember = async () => {
-    if (!editingMember || !formData.name || !formData.email || !formData.phone) {
+    if (
+      !editingMember ||
+      !formData.name ||
+      !formData.email ||
+      !formData.phone
+    ) {
       toast.error("Please fill all fields");
       return;
     }
@@ -217,13 +246,17 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
         email: formData.email,
         phone: formData.phone,
       };
-      if (editingMember.canChangeType && formData.uniqueKey) requestBody.uniqueKey = formData.uniqueKey;
-      if (editingMember.canChangeType && formData.managerType) requestBody.managerType = formData.managerType;
+      if (editingMember.canChangeType && formData.uniqueKey)
+        requestBody.uniqueKey = formData.uniqueKey;
+      if (editingMember.canChangeType && formData.managerType)
+        requestBody.managerType = formData.managerType;
 
       await updateMember(editingMember.id, requestBody);
       toast.success("Team member updated successfully!");
 
-      const typeChanged = editingMember.uniqueKey !== (formData.uniqueKey || editingMember.uniqueKey);
+      const typeChanged =
+        editingMember.uniqueKey !==
+        (formData.uniqueKey || editingMember.uniqueKey);
       if (typeChanged) {
         setMembers((prev) => prev.filter((m) => m.id !== editingMember.id));
       } else {
@@ -238,12 +271,18 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
                   uniqueKey: formData.uniqueKey || m.uniqueKey,
                   managerType: formData.managerType || m.managerType,
                 }
-              : m
-          )
+              : m,
+          ),
         );
       }
 
-      setFormData({ name: "", email: "", phone: "", uniqueKey: "", managerType: "" });
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        uniqueKey: "",
+        managerType: "",
+      });
       setEditingMember(null);
       setEditDialogOpen(false);
     } catch (error: any) {
@@ -253,11 +292,16 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
     }
   };
 
-  const handleStatusToggle = async (memberId: string, currentStatus: string) => {
+  const handleStatusToggle = async (
+    memberId: string,
+    currentStatus: string,
+  ) => {
     const newStatus = currentStatus === "success" ? "inactive" : "active";
     try {
       await toggleStatus(memberId, newStatus as "active" | "inactive");
-      toast.success(`Member ${newStatus === "active" ? "activated" : "deactivated"}!`);
+      toast.success(
+        `Member ${newStatus === "active" ? "activated" : "deactivated"}!`,
+      );
       setMembers((prev) => prev.filter((m) => m.id !== memberId));
     } catch (error: any) {
       toast.error(error.message || "Failed to update status");
@@ -281,7 +325,10 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
       id: "select",
       header: ({ table }) => (
         <Checkbox
-          checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
           onCheckedChange={(v) => table.toggleAllPageRowsSelected(!!v)}
           aria-label="Select all"
         />
@@ -299,7 +346,10 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
     {
       accessorKey: "name",
       header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
           Name <ArrowUpDown />
         </Button>
       ),
@@ -310,16 +360,24 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
     {
       accessorKey: "email",
       header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
           Email <ArrowUpDown />
         </Button>
       ),
-      cell: ({ row }) => <div className="lowercase">{row.getValue("email")}</div>,
+      cell: ({ row }) => (
+        <div className="lowercase">{row.getValue("email")}</div>
+      ),
     },
     {
       accessorKey: "phone",
       header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
           Phone <ArrowUpDown />
         </Button>
       ),
@@ -328,7 +386,9 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
     {
       accessorKey: "managerType",
       header: "Role",
-      cell: ({ row }) => <div className="capitalize">{row.getValue("managerType")}</div>,
+      cell: ({ row }) => (
+        <div className="capitalize">{row.getValue("managerType")}</div>
+      ),
     },
     {
       accessorKey: "status",
@@ -337,7 +397,11 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
         const status = row.getValue("status") as string;
         return (
           <div className="capitalize">
-            {status === "success" ? "Active" : status === "failed" ? "Inactive" : status}
+            {status === "success"
+              ? "Active"
+              : status === "failed"
+                ? "Inactive"
+                : status}
           </div>
         );
       },
@@ -358,15 +422,23 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => component?.openEditDialog(member)}>
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => component?.handleStatusToggle(member.id, member.status)}
-              >
-                {member.status === "success" ? "Deactivate" : "Activate"}
-              </DropdownMenuItem>
+              {permissions.canEdit && (
+                <DropdownMenuItem
+                  onClick={() => component?.openEditDialog(member)}
+                >
+                  Edit
+                </DropdownMenuItem>
+              )}
+              {permissions.canEdit && <DropdownMenuSeparator />}
+              {permissions.canDelete && (
+                <DropdownMenuItem
+                  onClick={() =>
+                    component?.handleStatusToggle(member.id, member.status)
+                  }
+                >
+                  {member.status === "success" ? "Deactivate" : "Activate"}
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         );
@@ -411,7 +483,13 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
             <Button
               variant="outline"
               onClick={() => {
-                setFormData({ name: "", email: "", phone: "", uniqueKey: managers || "", managerType: "" });
+                setFormData({
+                  name: "",
+                  email: "",
+                  phone: "",
+                  uniqueKey: managers || "",
+                  managerType: "",
+                });
                 setSendEmail(false);
                 setAddDialogOpen(true);
               }}
@@ -441,7 +519,13 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
               className="w-full"
             />
           </div>
-          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
+          <Select
+            value={statusFilter}
+            onValueChange={(v) => {
+              setStatusFilter(v);
+              setCurrentPage(1);
+            }}
+          >
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
@@ -457,16 +541,19 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {table.getAllColumns().filter((c) => c.getCanHide()).map((column) => (
-                <DropdownMenuCheckboxItem
-                  key={column.id}
-                  className="capitalize"
-                  checked={column.getIsVisible()}
-                  onCheckedChange={(v) => column.toggleVisibility(!!v)}
-                >
-                  {column.id}
-                </DropdownMenuCheckboxItem>
-              ))}
+              {table
+                .getAllColumns()
+                .filter((c) => c.getCanHide())
+                .map((column) => (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    className="capitalize"
+                    checked={column.getIsVisible()}
+                    onCheckedChange={(v) => column.toggleVisibility(!!v)}
+                  >
+                    {column.id}
+                  </DropdownMenuCheckboxItem>
+                ))}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -486,7 +573,10 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
                       <TableHead key={header.id}>
                         {header.isPlaceholder
                           ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
                       </TableHead>
                     ))}
                   </TableRow>
@@ -495,17 +585,26 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
               <TableBody>
                 {table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => (
-                    <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() && "selected"}
+                    >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell key={cell.id}>
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
                         </TableCell>
                       ))}
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                    <TableCell
+                      colSpan={columns.length}
+                      className="h-24 text-center"
+                    >
                       No team members found.
                     </TableCell>
                   </TableRow>
@@ -548,7 +647,8 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
           <DialogHeader>
             <DialogTitle>Add New Team Member</DialogTitle>
             <DialogDescription>
-              Add a new member to your {managers ? formattedManagers.toLowerCase() : "team"}.
+              Add a new member to your{" "}
+              {managers ? formattedManagers.toLowerCase() : "team"}.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -558,7 +658,9 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
                 id="name"
                 placeholder="Enter name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
               />
             </div>
             <div className="grid gap-2">
@@ -568,7 +670,9 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
                 type="email"
                 placeholder="Enter email address"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
               />
             </div>
             <div className="grid gap-2">
@@ -578,7 +682,9 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
                 type="tel"
                 placeholder="Enter 10-digit phone number"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
               />
             </div>
             {/* Show role selector only if not on a specific authority page */}
@@ -588,8 +694,14 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
                 <Select
                   value={formData.uniqueKey}
                   onValueChange={(value) => {
-                    const auth = teamAuthorities.find((a) => a.uniqueKey === value);
-                    setFormData({ ...formData, uniqueKey: value, managerType: auth?.labelName || "" });
+                    const auth = teamAuthorities.find(
+                      (a) => a.uniqueKey === value,
+                    );
+                    setFormData({
+                      ...formData,
+                      uniqueKey: value,
+                      managerType: auth?.labelName || "",
+                    });
                   }}
                 >
                   <SelectTrigger>
@@ -597,7 +709,10 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
                   </SelectTrigger>
                   <SelectContent>
                     {teamAuthorities.map((authority) => (
-                      <SelectItem key={authority.uniqueKey} value={authority.uniqueKey}>
+                      <SelectItem
+                        key={authority.uniqueKey}
+                        value={authority.uniqueKey}
+                      >
                         {authority.labelName}
                       </SelectItem>
                     ))}
@@ -607,7 +722,11 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
             ) : (
               <div className="grid gap-2">
                 <Label>Role</Label>
-                <Input value={formattedManagers} disabled className="bg-muted" />
+                <Input
+                  value={formattedManagers}
+                  disabled
+                  className="bg-muted"
+                />
               </div>
             )}
             <div className="flex items-center space-x-2">
@@ -622,9 +741,18 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
+              Cancel
+            </Button>
             <Button onClick={handleAddMember} disabled={saving}>
-              {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Adding...</> : "Add Member"}
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                "Add Member"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -644,7 +772,9 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Team Member</DialogTitle>
-            <DialogDescription>Update the team member details.</DialogDescription>
+            <DialogDescription>
+              Update the team member details.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
@@ -653,7 +783,9 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
                 id="edit-name"
                 placeholder="Enter name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
               />
             </div>
             <div className="grid gap-2">
@@ -663,7 +795,9 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
                 type="email"
                 placeholder="Enter email address"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
               />
             </div>
             <div className="grid gap-2">
@@ -673,7 +807,9 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
                 type="tel"
                 placeholder="Enter 10-digit phone number"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
               />
             </div>
             {editingMember?.canChangeType && teamAuthorities.length > 0 && (
@@ -682,8 +818,14 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
                 <Select
                   value={formData.uniqueKey}
                   onValueChange={(value) => {
-                    const auth = teamAuthorities.find((a) => a.uniqueKey === value);
-                    setFormData({ ...formData, uniqueKey: value, managerType: auth?.labelName || "" });
+                    const auth = teamAuthorities.find(
+                      (a) => a.uniqueKey === value,
+                    );
+                    setFormData({
+                      ...formData,
+                      uniqueKey: value,
+                      managerType: auth?.labelName || "",
+                    });
                   }}
                 >
                   <SelectTrigger>
@@ -691,7 +833,10 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
                   </SelectTrigger>
                   <SelectContent>
                     {teamAuthorities.map((authority) => (
-                      <SelectItem key={authority.uniqueKey} value={authority.uniqueKey}>
+                      <SelectItem
+                        key={authority.uniqueKey}
+                        value={authority.uniqueKey}
+                      >
                         {authority.labelName}
                       </SelectItem>
                     ))}
@@ -708,9 +853,18 @@ const ComponentsManagerTeams = ({ permissions }: ComponentsManagerTeamsProps) =>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Cancel
+            </Button>
             <Button onClick={handleEditMember} disabled={saving}>
-              {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Updating...</> : "Update"}
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -22,6 +22,26 @@ export default function ManagerTeamPage() {
     );
   }
 
+  if (permissions.isLoading) {
+    return <PageLoader message="Loading permissions..." />;
+  }
+
+  if (!permissions.hasSelectedBrand) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            No Brand Selected
+          </h2>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
+            Your account is not linked to a brand. Please contact your
+            administrator.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (!permissions.hasAccess || !permissions.canView) {
     return (
       <div className="flex h-96 items-center justify-center">

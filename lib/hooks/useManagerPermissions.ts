@@ -1,6 +1,6 @@
-import { useManagerRolePermissions } from './useManagerRolePermissions';
-import { useAuth } from '@/lib/context/AuthContext';
-import { Permission } from '@/types/role-permissions.types';
+import { useManagerRolePermissions } from "./useManagerRolePermissions";
+import { useAuth } from "@/lib/context/AuthContext";
+import { Permission } from "@/types/role-permissions.types";
 
 export interface ModulePermissions {
   hasAccess: boolean;
@@ -10,6 +10,8 @@ export interface ModulePermissions {
   canDelete: boolean;
   canBulk: boolean;
   canRequest: boolean;
+  isLoading: boolean;
+  hasSelectedBrand: boolean;
 }
 
 /**
@@ -18,9 +20,8 @@ export interface ModulePermissions {
  * @returns Permissions object with boolean flags
  */
 export function useManagerPermissions(moduleName: string): ModulePermissions {
-  const { authorities, isLoading } = useManagerRolePermissions();
-  console.log({ authorities});
-  
+  const { authorities, isLoading, hasSelectedBrand } =
+    useManagerRolePermissions();
 
   if (isLoading || !authorities || authorities.length === 0) {
     return {
@@ -31,15 +32,17 @@ export function useManagerPermissions(moduleName: string): ModulePermissions {
       canDelete: false,
       canBulk: false,
       canRequest: false,
+      isLoading,
+      hasSelectedBrand: hasSelectedBrand ?? false,
     };
   }
 
   // Find permission for this module across all authorities
   let modulePermission: Permission | undefined;
-  
+
   for (const authority of authorities) {
     modulePermission = authority.permissions.find(
-      (p) => p.module.toLowerCase() === moduleName.toLowerCase()
+      (p) => p.module.toLowerCase() === moduleName.toLowerCase(),
     );
     if (modulePermission) break;
   }
@@ -53,6 +56,8 @@ export function useManagerPermissions(moduleName: string): ModulePermissions {
       canDelete: false,
       canBulk: false,
       canRequest: false,
+      isLoading: false,
+      hasSelectedBrand: hasSelectedBrand ?? false,
     };
   }
 
@@ -64,5 +69,7 @@ export function useManagerPermissions(moduleName: string): ModulePermissions {
     canDelete: modulePermission.delete || false,
     canBulk: modulePermission.bulk || false,
     canRequest: modulePermission.request || false,
+    isLoading: false,
+    hasSelectedBrand: hasSelectedBrand ?? false,
   };
 }

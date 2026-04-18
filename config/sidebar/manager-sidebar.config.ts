@@ -14,29 +14,34 @@ import { RolePermission } from "@/types/role-permissions.types";
 // Module to icon mapping (Add new modules here only if you want custom icons)
 // Unmapped modules will use Settings icon by default
 const moduleIcons: Record<string, any> = {
-  "Rates": CirclePercent,
-  "Stores": Store,
-  "Campaigns": Briefcase,
-  "Orders": ShoppingCart,
+  Rates: CirclePercent,
+  Stores: Store,
+  Campaigns: Briefcase,
+  Orders: ShoppingCart,
   "Team Member": Users,
   "Created Store": Store,
-  "Installer": Wrench,
-  "Racce": PackageCheck,
+  Installer: Wrench,
+  Racce: PackageCheck,
 };
 
 // Module to URL mapping
 const moduleUrls: Record<string, string> = {
-  "Rates": "/rates",
-  "Stores": "/stores",
-  "Campaigns": "/campaigns",
-  "Orders": "/orders",
+  Rates: "/rates",
+  Stores: "/stores",
+  Campaigns: "/campaigns",
+  Orders: "/orders",
   "Team Member": "/team",
   "Created Store": "/created-stores",
 };
 
 // Manager Sidebar Configuration - Dynamic based on Work Authorities
 export const managerSidebarConfig: SidebarConfig = {
-  getNavigation: (baseUrl, teamAuthorities = [], storeAuthorities = [], rolePermissions: RolePermission[] = []) => {
+  getNavigation: (
+    baseUrl,
+    teamAuthorities = [],
+    storeAuthorities = [],
+    rolePermissions: RolePermission[] = [],
+  ) => {
     const navItems: SidebarNavItem[] = [];
 
     // If no role permissions, show empty sidebar
@@ -63,48 +68,61 @@ export const managerSidebarConfig: SidebarConfig = {
           (moduleName === "team member" || moduleName === "team members") &&
           permission.add
         );
-      })
+      }),
     );
 
     // Filter and sort team authorities (only valid uniqueKey)
     const sortedTeamAuthorities = [...teamAuthorities]
       .filter((auth: any) => auth?.uniqueKey && auth.uniqueKey !== "undefined")
-      .sort((a: any, b: any) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      .sort(
+        (a: any, b: any) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       );
 
     // Filter and sort store authorities (only valid items)
     const sortedStoreAuthorities = [...storeAuthorities]
-      .filter((authority: any) => authority?.selectedOptions && authority.selectedOptions.length > 0)
-      .sort((a: any, b: any) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      .filter(
+        (authority: any) =>
+          authority?.selectedOptions && authority.selectedOptions.length > 0,
+      )
+      .sort(
+        (a: any, b: any) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       );
 
     // Generate store items from store authorities
     const storeItems = sortedStoreAuthorities.flatMap((authority: any) => {
-      const uniqueKeys = authority.uniqueKeys || authority.selectedOptions.map((option: string) =>
-        option
-          .trim()
-          .split(/\s+/)
-          .map((word: string, index: number) => {
-            if (index === 0) {
-              return word.toLowerCase();
-            }
-            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-          })
-          .join("")
-      );
+      const uniqueKeys =
+        authority.uniqueKeys ||
+        authority.selectedOptions.map((option: string) =>
+          option
+            .trim()
+            .split(/\s+/)
+            .map((word: string, index: number) => {
+              if (index === 0) {
+                return word.toLowerCase();
+              }
+              return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+            })
+            .join(""),
+        );
 
       return authority.selectedOptions
         .map((option: string, index: number) => ({
           title: option,
           url: `${baseUrl}/stores/${uniqueKeys[index]}`,
         }))
-        .filter((item: { title: string; url: string }) => item.url && !item.url.includes("undefined"));
+        .filter(
+          (item: { title: string; url: string }) =>
+            item.url && !item.url.includes("undefined"),
+        );
     });
 
     // Teams
-    if ((hasModule("team member") || hasModule("team members")) && hasTeamAddPermission) {
+    if (
+      (hasModule("team member") || hasModule("team members")) &&
+      hasTeamAddPermission
+    ) {
       const teamItems = sortedTeamAuthorities.map((auth: any) => ({
         title: auth.labelName || auth.uniqueKey,
         url: `${baseUrl}/team/${auth.uniqueKey}`,
@@ -143,7 +161,11 @@ export const managerSidebarConfig: SidebarConfig = {
     }
 
     // Sites (Created-Sites)
-    if (hasModule("created-sites") || hasModule("created sites") || hasModule("created store")) {
+    if (
+      hasModule("created-sites") ||
+      hasModule("created sites") ||
+      hasModule("created store")
+    ) {
       navItems.push({
         title: "Sites",
         icon: Store,
@@ -151,7 +173,7 @@ export const managerSidebarConfig: SidebarConfig = {
         items: [
           {
             title: "All Sites",
-            url: `${baseUrl}/sites`,
+            url: `${baseUrl}/created-sites`,
           },
         ],
       });

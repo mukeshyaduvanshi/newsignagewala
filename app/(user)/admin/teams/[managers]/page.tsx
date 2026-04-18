@@ -1,12 +1,12 @@
-import ComponentsManager from '@/components/(user)/admin/teams/components-manager'
-import React from 'react'
+import ComponentsManager from "@/components/(user)/admin/teams/components-manager";
+import React from "react";
 
 const page = () => {
   return (
     <>
-    <ComponentsManager />
+      <ComponentsManager />
     </>
-  )
-}
+  );
+};
 
-export default page
+export default page;

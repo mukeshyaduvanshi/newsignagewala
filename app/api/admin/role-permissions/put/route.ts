@@ -14,7 +14,7 @@ export async function PUT(req: NextRequest) {
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json(
         { error: "Unauthorized - No token provided" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -24,27 +24,40 @@ export async function PUT(req: NextRequest) {
     if (!decoded) {
       return NextResponse.json(
         { error: "Unauthorized - Invalid token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     // Verify user is admin
     const user = await User.findById(decoded.userId);
-    if (!user || user.userType !== 'admin') {
+    if (!user || user.userType !== "admin") {
       return NextResponse.json(
         { error: "Access denied - Admin only" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     const body = await req.json();
-    const { id, teamMemberId, teamMemberName, teamMemberUniqueKey, permissions } = body;
+    const {
+      id,
+      teamMemberId,
+      teamMemberName,
+      teamMemberUniqueKey,
+      permissions,
+    } = body;
 
     // Validation
-    if (!id || !teamMemberId || !teamMemberName || !teamMemberUniqueKey || !permissions || !Array.isArray(permissions)) {
+    if (
+      !id ||
+      !teamMemberId ||
+      !teamMemberName ||
+      !teamMemberUniqueKey ||
+      !permissions ||
+      !Array.isArray(permissions)
+    ) {
       return NextResponse.json(
         { error: "ID, team member, unique key, and permissions are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -54,7 +67,7 @@ export async function PUT(req: NextRequest) {
     if (!rolePermission) {
       return NextResponse.json(
         { error: "Role permission not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -62,8 +75,10 @@ export async function PUT(req: NextRequest) {
     const userId = new mongoose.Types.ObjectId(decoded.userId);
     if (rolePermission.createdId.toString() !== userId.toString()) {
       return NextResponse.json(
-        { error: "Unauthorized - You can only update your own role permissions" },
-        { status: 403 }
+        {
+          error: "Unauthorized - You can only update your own role permissions",
+        },
+        { status: 403 },
       );
     }
 
@@ -79,7 +94,7 @@ export async function PUT(req: NextRequest) {
       if (existingRolePermission) {
         return NextResponse.json(
           { error: "Role permission already exists for this team member" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -91,18 +106,34 @@ export async function PUT(req: NextRequest) {
     rolePermission.permissions = permissions;
     await rolePermission.save();
 
+    // Propagate updated permissions to all brand-scoped copies (from previous assignments)
+    await RolePermission.updateMany(
+      {
+        teamMemberUniqueKey,
+        createdId: userId,
+        _id: { $ne: rolePermission._id }, // exclude the admin template itself
+        isActive: true,
+      },
+      {
+        $set: {
+          teamMemberName,
+          permissions,
+        },
+      },
+    );
+
     return NextResponse.json(
       {
         message: "Role permission updated successfully",
         data: rolePermission,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Error updating role permission:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

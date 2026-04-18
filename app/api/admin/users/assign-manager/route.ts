@@ -3,6 +3,8 @@ import { verifyAccessToken } from "@/lib/auth/jwt";
 import dbConnect from "@/lib/db/mongodb";
 import TeamMember from "@/lib/models/TeamMember";
 import User from "@/lib/models/User";
+import RolePermission from "@/lib/models/RolePermission";
+import mongoose from "mongoose";
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,7 +20,7 @@ export async function POST(req: NextRequest) {
     if (!decoded || decoded.userType !== "admin") {
       return NextResponse.json(
         { error: "Unauthorized - Admin only" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -32,7 +34,7 @@ export async function POST(req: NextRequest) {
     if (!brandId || !userRoleId || !managerId || !uniqueKey || !managerType) {
       return NextResponse.json(
         { error: "All fields are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -42,10 +44,7 @@ export async function POST(req: NextRequest) {
       .lean();
 
     if (!manager || manager.userType !== "manager") {
-      return NextResponse.json(
-        { error: "Invalid manager" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid manager" }, { status: 400 });
     }
 
     // Check if manager is already assigned to this brand with same uniqueKey
@@ -57,7 +56,7 @@ export async function POST(req: NextRequest) {
     if (existingAssignment) {
       return NextResponse.json(
         { error: "This manager is already assigned to this brand" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -75,6 +74,36 @@ export async function POST(req: NextRequest) {
       status: "active",
     });
 
+    // Clone admin's RolePermission (if any) for this uniqueKey to the brand scope
+    // so the manager can access their permissions when they log in
+    const adminRolePermission = await RolePermission.findOne({
+      teamMemberUniqueKey: uniqueKey,
+      createdId: new mongoose.Types.ObjectId(decoded.userId),
+      isActive: true,
+    });
+
+    if (adminRolePermission) {
+      // Check if a brand-scoped permission already exists for this uniqueKey+brand
+      const existingBrandPermission = await RolePermission.findOne({
+        teamMemberUniqueKey: uniqueKey,
+        parentId: new mongoose.Types.ObjectId(brandId),
+        isActive: true,
+      });
+
+      if (!existingBrandPermission) {
+        await RolePermission.create({
+          teamMemberId: adminRolePermission.teamMemberId,
+          teamMemberName: adminRolePermission.teamMemberName,
+          teamMemberUniqueKey: uniqueKey,
+          permissions: adminRolePermission.permissions,
+          createdId: new mongoose.Types.ObjectId(decoded.userId),
+          parentId: new mongoose.Types.ObjectId(brandId),
+          isActive: true,
+          isUsedInWork: false,
+        });
+      }
+    }
+
     return NextResponse.json(
       {
         message: "Manager assigned successfully",
@@ -90,22 +119,22 @@ export async function POST(req: NextRequest) {
           status: newTeamMember.status,
         },
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: any) {
     console.error("Error assigning manager:", error);
-    
+
     // Handle duplicate key error
     if (error.code === 11000) {
       return NextResponse.json(
         { error: "This manager is already assigned to this brand" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
     return NextResponse.json(
       { error: "Failed to assign manager", details: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
