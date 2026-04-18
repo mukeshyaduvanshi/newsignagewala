@@ -3,6 +3,7 @@ import { verifyAccessToken } from "@/lib/auth/jwt";
 import User from "@/lib/models/User";
 import BrandRate from "@/lib/models/BrandRate";
 import connectDB from "@/lib/db/mongodb";
+import { invalidateRatesCache } from "@/modules/brands/rates/rates.controller";
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
     if (!accessToken) {
       return NextResponse.json(
         { error: "Unauthorized - No token provided" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
     if (!decoded) {
       return NextResponse.json(
         { error: "Unauthorized - Invalid token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -32,10 +33,10 @@ export async function POST(req: NextRequest) {
 
     // Verify user is brand
     const user = await User.findById(userId);
-    if (!user || user.userType !== 'brand') {
+    if (!user || user.userType !== "brand") {
       return NextResponse.json(
         { error: "Access denied - Brand only" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -55,48 +56,46 @@ export async function POST(req: NextRequest) {
       masterRateId,
     } = await req.json();
 
-    
-
     // Validation
     if (!elementName || elementName.length < 2) {
       return NextResponse.json(
         { error: "Element name must be at least 2 characters" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!description || description.length < 10) {
       return NextResponse.json(
         { error: "Description must be at least 10 characters" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!rateType) {
       return NextResponse.json(
         { error: "Rate type is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!measurementUnit) {
       return NextResponse.json(
         { error: "Measurement unit is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!calculateUnit) {
       return NextResponse.json(
         { error: "Calculate unit is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (rate === undefined || rate === null || rate < 0) {
       return NextResponse.json(
         { error: "Valid rate is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -104,13 +103,13 @@ export async function POST(req: NextRequest) {
       if (!width || width <= 0) {
         return NextResponse.json(
           { error: "Width is required for fixed rate type" },
-          { status: 400 }
+          { status: 400 },
         );
       }
       if (!height || height <= 0) {
         return NextResponse.json(
           { error: "Height is required for fixed rate type" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -121,7 +120,6 @@ export async function POST(req: NextRequest) {
     //   - canEditDescription true → new element (true)
     //   - canEditDescription false → using master as-is (false)
     const newElement = masterRateId ? canEditDescription : true;
-
 
     // Create brand rate
     const brandRate = await BrandRate.create({
@@ -144,18 +142,19 @@ export async function POST(req: NextRequest) {
       isActive: true,
     });
 
+    await invalidateRatesCache(userId).catch(() => {});
     return NextResponse.json(
       {
         message: "Brand rate created successfully",
         data: brandRate,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: any) {
     console.error("Create brand rate error:", error);
     return NextResponse.json(
       { error: error.message || "Failed to create brand rate" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

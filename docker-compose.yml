@@ -2,22 +2,19 @@ version: "4.6"
 
 services:
   redis:
-    image: redis:7
-    container_name: signagewala-redis
+    image: redis:7-alpine
+    container_name: new-signagewala-redis
     restart: always
     command: >
       redis-server 
       --appendonly yes
-      --bind 0.0.0.0
       --requirepass admin123
     ports:
-      - "6379:6379"
+      - "6380:6379" # safe port
     volumes:
-      - redis-data:/signagewala-redis-data
+      - redis-data:/data
 
 volumes:
   redis-data:
 
-  
-#   192.168.29.157
-# REDIS_URL=redis://:admin123@192.168.29.157:6379
+# redis://:admin123@localhost:6380

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAccessToken } from "@/lib/auth/jwt";
-import dbConnect from "@/lib/db/mongodb";
-import PurchaseAuthority from "@/lib/models/PurchaseAuthority";
-import User from "@/lib/models/User";
+import { getPurchaseAuthorityController } from "@/modules/brands/purchase-authority/purchase-authority.controller";
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,34 +22,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    await dbConnect();
-
-    // Fetch all purchase authorities for this brand
-    const authorities = await PurchaseAuthority.find({
-      brandId: decoded.userId,
-    })
-      .sort({ createdAt: -1 })
-      .lean();
-
-    // Populate vendor information
-    const authoritiesWithVendor = await Promise.all(
-      authorities.map(async (authority) => {
-        const vendor = await User.findById(authority.vendorId)
-          .select("name email")
-          .lean();
-
-        return {
-          ...authority,
-          vendorName: vendor?.name || "Unknown",
-          vendorEmail: vendor?.email || "",
-        };
-      }),
+    const { data: authorities, source } = await getPurchaseAuthorityController(
+      decoded.userId,
     );
-
-    return NextResponse.json(
-      { authorities: authoritiesWithVendor },
-      { status: 200 },
-    );
+    return NextResponse.json({ authorities, source }, { status: 200 });
   } catch (error: any) {
     console.error("Error fetching purchase authorities:", error);
     return NextResponse.json(

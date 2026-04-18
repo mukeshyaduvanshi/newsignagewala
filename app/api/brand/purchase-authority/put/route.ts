@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyAccessToken } from "@/lib/auth/jwt";
 import dbConnect from "@/lib/db/mongodb";
 import PurchaseAuthority from "@/lib/models/PurchaseAuthority";
+import { invalidatePurchaseAuthorityCache } from "@/modules/brands/purchase-authority/purchase-authority.controller";
 
 export async function PUT(request: NextRequest) {
   try {
@@ -11,7 +12,7 @@ export async function PUT(request: NextRequest) {
     if (!token) {
       return NextResponse.json(
         { error: "Authorization token required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -19,18 +20,19 @@ export async function PUT(request: NextRequest) {
     if (!decoded || decoded.userType !== "brand") {
       return NextResponse.json(
         { error: "Unauthorized access" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     await dbConnect();
 
-    const { id, poNumber, vendorId, issueDate, expiryDate, amount } = await request.json();
+    const { id, poNumber, vendorId, issueDate, expiryDate, amount } =
+      await request.json();
 
     if (!id) {
       return NextResponse.json(
         { error: "Purchase authority ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -43,20 +45,20 @@ export async function PUT(request: NextRequest) {
     if (!existingAuthority) {
       return NextResponse.json(
         { error: "Purchase authority not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Check if PO Number is being changed and if it already exists
     if (poNumber && poNumber !== existingAuthority.poNumber) {
-      const duplicatePO = await PurchaseAuthority.findOne({ 
+      const duplicatePO = await PurchaseAuthority.findOne({
         poNumber,
-        _id: { $ne: id }
+        _id: { $ne: id },
       });
       if (duplicatePO) {
         return NextResponse.json(
           { error: "PO Number already exists" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -71,21 +73,22 @@ export async function PUT(request: NextRequest) {
         expiryDate,
         amount,
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
+    await invalidatePurchaseAuthorityCache(decoded.userId).catch(() => {});
     return NextResponse.json(
       {
         message: "Purchase authority updated successfully",
         authority: updatedAuthority,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Error updating purchase authority:", error);
     return NextResponse.json(
       { error: error.message || "Failed to update purchase authority" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

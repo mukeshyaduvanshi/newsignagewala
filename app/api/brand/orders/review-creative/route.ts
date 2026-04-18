@@ -52,6 +52,11 @@ export async function POST(request: NextRequest) {
       order.orderStatus = "creativeaddepted";
     }
 
+    // Normalize legacy 'complete' status value
+    if ((order.orderStatus as string) === "complete") {
+      order.orderStatus = "completed";
+    }
+
     await order.save();
 
     return NextResponse.json({

@@ -3,6 +3,7 @@ import dbConnect from "@/lib/db/mongodb";
 import RolePermission from "@/lib/models/RolePermission";
 import { verifyAccessToken } from "@/lib/auth/jwt";
 import mongoose from "mongoose";
+import { invalidateRolePermissionsCache } from "@/modules/vendor/role-permissions/role-permissions.controller";
 
 export async function PUT(req: NextRequest) {
   try {
@@ -13,7 +14,7 @@ export async function PUT(req: NextRequest) {
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json(
         { error: "Unauthorized - No token provided" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -23,18 +24,31 @@ export async function PUT(req: NextRequest) {
     if (!decoded) {
       return NextResponse.json(
         { error: "Unauthorized - Invalid token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const body = await req.json();
-    const { id, teamMemberId, teamMemberName, teamMemberUniqueKey, permissions } = body;
+    const {
+      id,
+      teamMemberId,
+      teamMemberName,
+      teamMemberUniqueKey,
+      permissions,
+    } = body;
 
     // Validation
-    if (!id || !teamMemberId || !teamMemberName || !teamMemberUniqueKey || !permissions || !Array.isArray(permissions)) {
+    if (
+      !id ||
+      !teamMemberId ||
+      !teamMemberName ||
+      !teamMemberUniqueKey ||
+      !permissions ||
+      !Array.isArray(permissions)
+    ) {
       return NextResponse.json(
         { error: "ID, team member, unique key, and permissions are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -44,7 +58,7 @@ export async function PUT(req: NextRequest) {
     if (!rolePermission) {
       return NextResponse.json(
         { error: "Role permission not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -56,7 +70,7 @@ export async function PUT(req: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "Unauthorized - You don't own this role permission" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -72,7 +86,7 @@ export async function PUT(req: NextRequest) {
       if (existingRolePermission) {
         return NextResponse.json(
           { error: "Role permission already exists for this team member" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -84,18 +98,20 @@ export async function PUT(req: NextRequest) {
     rolePermission.permissions = permissions;
     await rolePermission.save();
 
+    await invalidateRolePermissionsCache(decoded.userId);
+
     return NextResponse.json(
       {
         message: "Role permission updated successfully",
         data: rolePermission,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Error updating role permission:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

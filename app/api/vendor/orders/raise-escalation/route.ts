@@ -3,6 +3,10 @@ import mongoose from "mongoose";
 import dbConnect from "@/lib/db/mongodb";
 import Order from "@/lib/models/Order";
 import { verifyAccessToken } from "@/lib/auth/jwt";
+import {
+  invalidateOrdersCache,
+  publishOrdersUpdate,
+} from "@/modules/vendor/orders/orders.controller";
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,10 +15,7 @@ export async function POST(request: NextRequest) {
     // Get token from Authorization header
     const authHeader = request.headers.get("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { error: "No token provided" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "No token provided" }, { status: 401 });
     }
 
     const token = authHeader.substring(7);
@@ -23,52 +24,62 @@ export async function POST(request: NextRequest) {
     if (!decoded || decoded.userType !== "vendor") {
       return NextResponse.json(
         { error: "Unauthorized - Vendor access only" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     const vendorId = decoded.userId;
     const body = await request.json();
-    const { 
-      orderId, 
-      siteChanges, 
-      additionalChargeChanges, 
-      oldTotal, 
+    const {
+      orderId,
+      siteChanges,
+      additionalChargeChanges,
+      oldTotal,
       newTotal,
-      reason 
+      reason,
     } = body;
 
     if (!orderId) {
       return NextResponse.json(
         { error: "Order ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Find the order and verify vendor ownership
     await dbConnect();
-    const order = await Order.findById(orderId).populate("brandId", "companyName email phone");
+    const order = await Order.findById(orderId).populate(
+      "brandId",
+      "companyName email phone",
+    );
 
     if (!order) {
-      return NextResponse.json(
-        { error: "Order not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
     // Verify vendor owns this order
     if (order.vendorId?.toString() !== vendorId) {
       return NextResponse.json(
         { error: "Unauthorized - This order is not assigned to you" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
-    // Check if order status is "new" or "escalation" (allows counter-offers)
-    if (order.orderStatus !== "new" && order.orderStatus !== "escalation") {
+    // Check if order status allows escalation
+    const escalatableStatuses = [
+      "new",
+      "accepted",
+      "creativeAdapted",
+      "creativeaddepted",
+      "escalation",
+    ];
+    if (!escalatableStatuses.includes(order.orderStatus)) {
       return NextResponse.json(
-        { error: "Can only raise escalation for new or pending escalation orders" },
-        { status: 400 }
+        {
+          error:
+            "Can only raise escalation for new or pending escalation orders",
+        },
+        { status: 400 },
       );
     }
 
@@ -83,7 +94,7 @@ export async function POST(request: NextRequest) {
       newTotal,
       totalDifference: newTotal - oldTotal,
       reason: reason || "Price adjustment requested",
-      status: "pending" as const
+      status: "pending" as const,
     };
 
     // Initialize priceEscalation array if it doesn't exist
@@ -100,6 +111,9 @@ export async function POST(request: NextRequest) {
     // Save the order
     await order.save();
 
+    await invalidateOrdersCache(decoded.userId);
+    await publishOrdersUpdate(decoded.userId);
+
     return NextResponse.json({
       success: true,
       message: "Price escalation raised successfully",
@@ -114,7 +128,7 @@ export async function POST(request: NextRequest) {
     console.error("Error raising escalation:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

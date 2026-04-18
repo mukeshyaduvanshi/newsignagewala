@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db/mongodb";
 import StoreAuthority from "@/lib/models/StoreAuthority";
 import { verifyAccessToken, extractBearerToken } from "@/lib/auth/jwt";
-import { invalidateStoreAuthorityCache } from "@/lib/utils/sidebar-cache";
+import { invalidateStoreAuthorityCache } from "@/modules/brands/store-authority/store-authority.controller";
 
 // Function to convert option to camelCase uniqueKey
 function generateUniqueKey(option: string): string {
@@ -15,7 +15,7 @@ function generateUniqueKey(option: string): string {
       }
       return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
     })
-    .join('');
+    .join("");
 }
 
 export async function POST(req: NextRequest) {
@@ -23,13 +23,13 @@ export async function POST(req: NextRequest) {
     await connectDB();
 
     // Get access token from Authorization header
-    const authHeader = req.headers.get('authorization');
+    const authHeader = req.headers.get("authorization");
     const accessToken = extractBearerToken(authHeader);
-    
+
     if (!accessToken) {
       return NextResponse.json(
         { error: "Unauthorized - No token provided" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     if (!decoded) {
       return NextResponse.json(
         { error: "Unauthorized - Invalid token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -46,15 +46,21 @@ export async function POST(req: NextRequest) {
     const { selectedOptions } = await req.json();
 
     // Validation
-    if (!selectedOptions || !Array.isArray(selectedOptions) || selectedOptions.length === 0) {
+    if (
+      !selectedOptions ||
+      !Array.isArray(selectedOptions) ||
+      selectedOptions.length === 0
+    ) {
       return NextResponse.json(
         { error: "At least one option must be selected" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Generate uniqueKeys from selectedOptions
-    const uniqueKeys = selectedOptions.map(option => generateUniqueKey(option));
+    const uniqueKeys = selectedOptions.map((option) =>
+      generateUniqueKey(option),
+    );
 
     // Create store authority with createdId from token
     const storeAuthority = await StoreAuthority.create({
@@ -74,13 +80,13 @@ export async function POST(req: NextRequest) {
         message: "Store authority created successfully",
         data: storeAuthority,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: any) {
     console.error("Create store authority error:", error);
     return NextResponse.json(
       { error: error.message || "Failed to create store authority" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

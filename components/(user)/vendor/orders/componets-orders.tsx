@@ -17,8 +17,14 @@ import { StoreLocationsMap } from "@/components/maps/store-locations-map";
 import { JobCardPdf } from "./job-card-pdf";
 import { InstallationCertificatePdf } from "./installation-certificate-pdf";
 import { ReviewInstallationImages } from "./review-installation-images";
-import { useOrderJobCards, type OpenJobCardData } from "@/hooks/use-order-jobcards";
-import { useOrderInstallCerts, type InstallCertData } from "@/hooks/use-order-install-certs";
+import {
+  useOrderJobCards,
+  type OpenJobCardData,
+} from "@/hooks/use-order-jobcards";
+import {
+  useOrderInstallCerts,
+  type InstallCertData,
+} from "@/hooks/use-order-install-certs";
 import {
   flexRender,
   getCoreRowModel,
@@ -101,14 +107,15 @@ const statusColors = {
   confirmed: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
   "in-progress":
     "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
-    rejected:
-    "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+  rejected: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
   completed:
     "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
   cancelled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
   accepted: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-300",
-  escalation: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
-  installed: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300",
+  escalation:
+    "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
+  installed:
+    "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300",
 };
 
 export const columns: ColumnDef<VendorOrder>[] = [
@@ -243,41 +250,68 @@ export const columns: ColumnDef<VendorOrder>[] = [
                 <Eye />
                 View Details
               </DropdownMenuItem>
-              {order.orderStatus !== "accepted" && order.orderStatus === "new" && (
+              {["new", "creativeAdapted", "creativeaddepted"].includes(
+                order.orderStatus,
+              ) && (
                 <>
-                  <DropdownMenuItem className="flex gap-1" onClick={() => meta?.viewMap(order)}>
+                  <DropdownMenuItem
+                    className="flex gap-1"
+                    onClick={() => meta?.viewMap(order)}
+                  >
                     <MapPin />
                     View Map
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="flex gap-1" onClick={() => meta?.onAcceptOrder(order._id)} disabled={meta?.accepting}>
-                    <CircleCheckBig /> {meta?.accepting ? "Accepting..." : "Accept Order"}
+                  <DropdownMenuItem
+                    className="flex gap-1"
+                    onClick={() => meta?.onAcceptOrder(order._id)}
+                    disabled={meta?.accepting}
+                  >
+                    <CircleCheckBig />{" "}
+                    {meta?.accepting ? "Accepting..." : "Accept Order"}
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="flex gap-1" onClick={() => meta?.onRejectOrder(order._id)} disabled={meta?.rejecting}>
-                    <CircleX /> {meta?.rejecting ? "Rejecting..." : "Reject Order"}
+                  <DropdownMenuItem
+                    className="flex gap-1"
+                    onClick={() => meta?.onRejectOrder(order._id)}
+                    disabled={meta?.rejecting}
+                  >
+                    <CircleX />{" "}
+                    {meta?.rejecting ? "Rejecting..." : "Reject Order"}
                   </DropdownMenuItem>
                   <DropdownMenuItem className="flex gap-1">
                     <ArrowUpFromDot /> Escalation
                   </DropdownMenuItem>
                 </>
               )}
-              {order.orderStatus !== "new" && (
+              {!["new", "creativeAdapted", "creativeaddepted"].includes(
+                order.orderStatus,
+              ) && (
                 <>
-                  <DropdownMenuItem className="flex gap-1" onClick={() => meta?.viewMap(order)}>
+                  <DropdownMenuItem
+                    className="flex gap-1"
+                    onClick={() => meta?.viewMap(order)}
+                  >
                     <MapPin />
                     View Map
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="flex gap-1" onClick={() => meta?.jobCart(order)}>
+                  <DropdownMenuItem
+                    className="flex gap-1"
+                    onClick={() => meta?.jobCart(order)}
+                  >
                     <Printer /> Job Card
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="flex gap-1" onClick={() => meta?.installCert(order)}>
+                  <DropdownMenuItem
+                    className="flex gap-1"
+                    onClick={() => meta?.installCert(order)}
+                  >
                     <Printer /> Install Certificate
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    className="flex gap-1" 
+                  <DropdownMenuItem
+                    className="flex gap-1"
                     onClick={() => meta?.generatePPT(order)}
                     disabled={meta?.generatingPPT}
                   >
-                    <Presentation /> {meta?.generatingPPT ? 'Generating...' : 'Generate PPT'}
+                    <Presentation />{" "}
+                    {meta?.generatingPPT ? "Generating..." : "Generate PPT"}
                   </DropdownMenuItem>
                   <DropdownMenuItem className="flex gap-1">
                     <Ban /> Cancel Order
@@ -305,9 +339,11 @@ export const columns: ColumnDef<VendorOrder>[] = [
 
 function ComponentsOrders() {
   const { orders, isLoading, isError, mutate } = useVendorOrders();
-  const { acceptOrder, rejectOrder, isAccepting, isRejecting } = useVendorOrderActions();
+  const { acceptOrder, rejectOrder, isAccepting, isRejecting } =
+    useVendorOrderActions();
   const { raiseEscalation, isEscalating } = useVendorEscalation();
-  const { acceptEscalation, isAcceptingEscalation } = useVendorAcceptEscalation();
+  const { acceptEscalation, isAcceptingEscalation } =
+    useVendorAcceptEscalation();
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -324,50 +360,70 @@ function ComponentsOrders() {
   );
   const [detailsOpen, setDetailsOpen] = React.useState(false);
   const [editedSites, setEditedSites] = React.useState<OrderSite[]>([]);
-  const [initialEditedSites, setInitialEditedSites] = React.useState<OrderSite[]>([]);
-  const [editedAdditionalCharges, setEditedAdditionalCharges] = React.useState<number>(0);
-  const [initialAdditionalCharges, setInitialAdditionalCharges] = React.useState<number>(0);
+  const [initialEditedSites, setInitialEditedSites] = React.useState<
+    OrderSite[]
+  >([]);
+  const [editedAdditionalCharges, setEditedAdditionalCharges] =
+    React.useState<number>(0);
+  const [initialAdditionalCharges, setInitialAdditionalCharges] =
+    React.useState<number>(0);
   const [hasChanges, setHasChanges] = React.useState(false);
   const [mapOpen, setMapOpen] = React.useState(false);
   const [mapOrder, setMapOrder] = React.useState<VendorOrder | null>(null);
   const [jobCardOpen, setJobCardOpen] = React.useState(false);
-  const [jobCardOrder, setJobCardOrder] = React.useState<VendorOrder | null>(null);
+  const [jobCardOrder, setJobCardOrder] = React.useState<VendorOrder | null>(
+    null,
+  );
   const [selectedSites, setSelectedSites] = React.useState<number[]>([]);
   const [installCertOpen, setInstallCertOpen] = React.useState(false);
-  const [installCertOrder, setInstallCertOrder] = React.useState<VendorOrder | null>(null);
+  const [installCertOrder, setInstallCertOrder] =
+    React.useState<VendorOrder | null>(null);
   const [viewJobCardOpen, setViewJobCardOpen] = React.useState(false);
-  const [viewJobCardData, setViewJobCardData] = React.useState<OpenJobCardData | null>(null);
+  const [viewJobCardData, setViewJobCardData] =
+    React.useState<OpenJobCardData | null>(null);
   const [viewInstallCertOpen, setViewInstallCertOpen] = React.useState(false);
-  const [viewInstallCertData, setViewInstallCertData] = React.useState<InstallCertData | null>(null);
-  const [companyLogo, setCompanyLogo] = React.useState<string | undefined>(undefined);
-  const [updatingJobCardId, setUpdatingJobCardId] = React.useState<string | null>(null);
+  const [viewInstallCertData, setViewInstallCertData] =
+    React.useState<InstallCertData | null>(null);
+  const [companyLogo, setCompanyLogo] = React.useState<string | undefined>(
+    undefined,
+  );
+  const [updatingJobCardId, setUpdatingJobCardId] = React.useState<
+    string | null
+  >(null);
   const [reviewImagesOpen, setReviewImagesOpen] = React.useState(false);
-  const [reviewCertData, setReviewCertData] = React.useState<InstallCertData | null>(null);
+  const [reviewCertData, setReviewCertData] =
+    React.useState<InstallCertData | null>(null);
   const [rejectionRemarksOpen, setRejectionRemarksOpen] = React.useState(false);
-  const [selectedRejectionRemarks, setSelectedRejectionRemarks] = React.useState<string>('');
+  const [selectedRejectionRemarks, setSelectedRejectionRemarks] =
+    React.useState<string>("");
   const [isGeneratingPPT, setIsGeneratingPPT] = React.useState(false);
-  const [showFinalSubmitConfirm, setShowFinalSubmitConfirm] = React.useState(false);
-  const [selectedCertForFinalSubmit, setSelectedCertForFinalSubmit] = React.useState<InstallCertData | null>(null);
+  const [showFinalSubmitConfirm, setShowFinalSubmitConfirm] =
+    React.useState(false);
+  const [selectedCertForFinalSubmit, setSelectedCertForFinalSubmit] =
+    React.useState<InstallCertData | null>(null);
   const [isFinalSubmitting, setIsFinalSubmitting] = React.useState(false);
   const { user, accessToken } = useAuth();
 
   // Fetch job cards and installation certificates for selected order
-  const { jobCards, mutate: mutateJobCards } = useOrderJobCards(selectedOrder?._id || null);
-  const { installCerts, mutate: mutateInstallCerts } = useOrderInstallCerts(selectedOrder?._id || null);
+  const { jobCards, mutate: mutateJobCards } = useOrderJobCards(
+    selectedOrder?._id || null,
+  );
+  const { installCerts, mutate: mutateInstallCerts } = useOrderInstallCerts(
+    selectedOrder?._id || null,
+  );
 
   // console.log({installCerts: installCerts.map(cert => cert.sites.map(site => site.storeName + "-" + site.elementName)).flat()});
-  
 
   const handleGeneratePPT = async (order: VendorOrder) => {
     try {
       setIsGeneratingPPT(true);
       toast.info("Preparing PPT data... Please wait");
 
-      const response = await fetch('/api/vendor/orders/prepare-ppt-data', {
-        method: 'POST',
+      const response = await fetch("/api/vendor/orders/prepare-ppt-data", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ orderId: order._id }),
       });
@@ -375,21 +431,20 @@ function ComponentsOrders() {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.message || 'Failed to prepare PPT data');
+        toast.error(data.message || "Failed to prepare PPT data");
         setIsGeneratingPPT(false);
         return;
       }
 
       // Open PPT generation page in new tab
       const pptUrl = `/pptgen/${data.tempId}`;
-      window.open(pptUrl, '_blank');
-      
-      setIsGeneratingPPT(false);
-      toast.success('PPT generation page opened in new tab!');
+      window.open(pptUrl, "_blank");
 
+      setIsGeneratingPPT(false);
+      toast.success("PPT generation page opened in new tab!");
     } catch (error) {
-      console.error('Error preparing PPT:', error);
-      toast.error('Failed to prepare PPT');
+      console.error("Error preparing PPT:", error);
+      toast.error("Failed to prepare PPT");
       setIsGeneratingPPT(false);
     }
   };
@@ -400,13 +455,13 @@ function ComponentsOrders() {
   };
 
   const getVendorVerifiedCount = (cert: InstallCertData) => {
-    return cert.sites.filter(site => site.status === 'vendorVerified').length;
+    return cert.sites.filter((site) => site.status === "vendorVerified").length;
   };
 
   const handleFinalSubmitClick = (cert: InstallCertData) => {
     const verifiedCount = getVendorVerifiedCount(cert);
     if (verifiedCount === 0) {
-      toast.error('No vendor verified sites to submit');
+      toast.error("No vendor verified sites to submit");
       return;
     }
     setSelectedCertForFinalSubmit(cert);
@@ -415,35 +470,40 @@ function ComponentsOrders() {
 
   const handlePPTGeneratedYes = async () => {
     if (!selectedCertForFinalSubmit) return;
-    
+
     setShowFinalSubmitConfirm(false);
     setIsFinalSubmitting(true);
-    
+
     try {
-      const response = await fetch('/api/vendor/orders/final-submit-installation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
+      const response = await fetch(
+        "/api/vendor/orders/final-submit-installation",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            orderId: selectedOrder?._id,
+            certificateId: selectedCertForFinalSubmit._id,
+          }),
         },
-        body: JSON.stringify({
-          orderId: selectedOrder?._id,
-          certificateId: selectedCertForFinalSubmit._id,
-        }),
-      });
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to submit installation');
+        throw new Error(data.error || "Failed to submit installation");
       }
 
-      toast.success(`✓ ${data.submittedCount} sites marked as submitted successfully!`);
+      toast.success(
+        `✓ ${data.submittedCount} sites marked as submitted successfully!`,
+      );
       mutateInstallCerts();
       mutate();
     } catch (error: any) {
-      console.error('Error in final submit:', error);
-      toast.error(error.message || 'Failed to submit installation');
+      console.error("Error in final submit:", error);
+      toast.error(error.message || "Failed to submit installation");
     } finally {
       setIsFinalSubmitting(false);
       setSelectedCertForFinalSubmit(null);
@@ -453,13 +513,15 @@ function ComponentsOrders() {
   const handlePPTGeneratedNo = () => {
     setShowFinalSubmitConfirm(false);
     setSelectedCertForFinalSubmit(null);
-    toast.warning('⚠️ This is the last time you can generate PPT. Please generate it now before final submission.');
+    toast.warning(
+      "⚠️ This is the last time you can generate PPT. Please generate it now before final submission.",
+    );
   };
-  
+
   // Check if ALL job cards have status "printed"
-  const allJobCardsPrinted = jobCards.length > 0 && jobCards.every(
-    (jobCard) => jobCard.orderStatus === "printed",
-  );
+  const allJobCardsPrinted =
+    jobCards.length > 0 &&
+    jobCards.every((jobCard) => jobCard.orderStatus === "printed");
 
   React.useEffect(() => {
     if (isError) {
@@ -480,24 +542,29 @@ function ComponentsOrders() {
   // Automatically uncheck sites that become disabled
   React.useEffect(() => {
     if (selectedSites.length > 0 && editedSites.length > 0) {
-      const validSelections = selectedSites.filter(index => !shouldDisableSite(index));
+      const validSelections = selectedSites.filter(
+        (index) => !shouldDisableSite(index),
+      );
       if (validSelections.length !== selectedSites.length) {
         setSelectedSites(validSelections);
       }
     }
   }, [jobCards, installCerts, allJobCardsPrinted, editedSites]);
 
-
   const handleViewDetails = (order: VendorOrder) => {
     setSelectedOrder(order);
     setSelectedSites([]); // Reset selected sites
-    
+
     // If order is in escalation status and has escalations, apply ALL escalations cumulatively
-    if (order.orderStatus === "escalation" && order.priceEscalation && order.priceEscalation.length > 0) {
+    if (
+      order.orderStatus === "escalation" &&
+      order.priceEscalation &&
+      order.priceEscalation.length > 0
+    ) {
       // Start with original order sites
-      let updatedSites = order.sites.map(site => ({ ...site }));
+      let updatedSites = order.sites.map((site) => ({ ...site }));
       let updatedAdditionalCharges = order.additionalChargesTotal || 0;
-      
+
       // Apply ALL escalations in sequence to get cumulative effect
       order.priceEscalation.forEach((escalation: any) => {
         // Apply site rate changes from this escalation
@@ -506,15 +573,20 @@ function ComponentsOrders() {
             updatedSites[change.siteIndex].rate = change.newRate;
           }
         });
-        
+
         // Apply additional charges changes from this escalation
-        if (escalation.additionalChargeChanges && escalation.additionalChargeChanges.length > 0) {
-          const latestChargeChange = escalation.additionalChargeChanges[escalation.additionalChargeChanges.length - 1];
+        if (
+          escalation.additionalChargeChanges &&
+          escalation.additionalChargeChanges.length > 0
+        ) {
+          const latestChargeChange =
+            escalation.additionalChargeChanges[
+              escalation.additionalChargeChanges.length - 1
+            ];
           updatedAdditionalCharges = latestChargeChange.newAmount;
         }
       });
-      
-      
+
       setEditedSites(updatedSites);
       setInitialEditedSites(updatedSites);
       setEditedAdditionalCharges(updatedAdditionalCharges);
@@ -525,12 +597,12 @@ function ComponentsOrders() {
       setEditedAdditionalCharges(order.additionalChargesTotal || 0);
       setInitialAdditionalCharges(order.additionalChargesTotal || 0);
     }
-    
+
     setHasChanges(false);
     setDetailsOpen(true);
   };
 
-   const handleAcceptOrder = async (orderId: string) => {
+  const handleAcceptOrder = async (orderId: string) => {
     const success = await acceptOrder(orderId);
     if (success) {
       setDetailsOpen(false);
@@ -548,7 +620,7 @@ function ComponentsOrders() {
           // Close modal immediately for better UX
           setDetailsOpen(false);
           // Then perform rejection asynchronously
-          rejectOrder(orderId).then(success => {
+          rejectOrder(orderId).then((success) => {
             if (success) {
               mutate(); // Refresh orders list
             }
@@ -561,14 +633,14 @@ function ComponentsOrders() {
           toast.dismiss();
           setDetailsOpen(false);
         },
-      }
-    })
+      },
+    });
   };
 
   const handleSiteRateChange = (index: number, newRate: number) => {
     const changedSite = editedSites[index];
     const elementName = changedSite.elementName;
-    
+
     // Update all sites with the same elementName
     const updated = editedSites.map((site, idx) => {
       if (site.elementName === elementName) {
@@ -576,15 +648,15 @@ function ComponentsOrders() {
       }
       return site;
     });
-    
+
     setEditedSites(updated);
     setHasChanges(true);
   };
 
   const handleSiteSelection = (index: number) => {
-    setSelectedSites(prev => {
+    setSelectedSites((prev) => {
       if (prev.includes(index)) {
-        return prev.filter(i => i !== index);
+        return prev.filter((i) => i !== index);
       } else {
         return [...prev, index];
       }
@@ -593,7 +665,7 @@ function ComponentsOrders() {
 
   const handleSelectAllSites = () => {
     const selectableSites = getSelectableSiteIndices();
-    
+
     if (selectedSites.length === selectableSites.length) {
       setSelectedSites([]);
     } else {
@@ -606,10 +678,10 @@ function ComponentsOrders() {
     if (allJobCardsPrinted) {
       return editedSites
         .map((_, index) => index)
-        .filter(index => {
+        .filter((index) => {
           const site = editedSites[index];
           // Include rejected sites for resubmission
-          if (site?.rejectionStatus === 'rejected') return true;
+          if (site?.rejectionStatus === "rejected") return true;
           return !isSiteUsedInInstallCert(index);
         });
     }
@@ -617,10 +689,10 @@ function ComponentsOrders() {
     // Otherwise, only allow sites not used in job cards OR rejected sites
     return editedSites
       .map((_, index) => index)
-      .filter(index => {
+      .filter((index) => {
         const site = editedSites[index];
         // Include rejected sites for resubmission
-        if (site?.rejectionStatus === 'rejected') return true;
+        if (site?.rejectionStatus === "rejected") return true;
         return !isSiteUsedInJobCard(index);
       });
   };
@@ -628,12 +700,12 @@ function ComponentsOrders() {
   const shouldDisableSite = (siteIndex: number) => {
     const site = editedSites[siteIndex];
     if (!site) return false;
-    
+
     // Allow selecting rejected sites again for resubmission
-    if (site.rejectionStatus === 'rejected') {
+    if (site.rejectionStatus === "rejected") {
       return false;
     }
-    
+
     // When all job cards are printed, disable sites used in install certs
     if (allJobCardsPrinted) {
       return isSiteUsedInInstallCert(siteIndex);
@@ -647,11 +719,13 @@ function ComponentsOrders() {
     if (!selectedOrder) return false;
     const site = editedSites[siteIndex];
     if (!site) return false;
-    
-    return jobCards.some(jobCard => 
-      jobCard.sites.some(jcSite => 
-        jcSite.storeName === site.storeName && jcSite.elementName === site.elementName
-      )
+
+    return jobCards.some((jobCard) =>
+      jobCard.sites.some(
+        (jcSite) =>
+          jcSite.storeName === site.storeName &&
+          jcSite.elementName === site.elementName,
+      ),
     );
   };
 
@@ -660,11 +734,13 @@ function ComponentsOrders() {
     if (!selectedOrder) return false;
     const site = editedSites[siteIndex];
     if (!site) return false;
-    
-    return installCerts.some(cert => 
-      cert.sites.some(certSite => 
-        certSite.storeName === site.storeName && certSite.elementName === site.elementName
-      )
+
+    return installCerts.some((cert) =>
+      cert.sites.some(
+        (certSite) =>
+          certSite.storeName === site.storeName &&
+          certSite.elementName === site.elementName,
+      ),
     );
   };
 
@@ -674,7 +750,10 @@ function ComponentsOrders() {
   };
 
   const calculateEditedTotal = () => {
-    const subtotal = editedSites.reduce((sum, site) => sum + priceCalculatorNumber(site), 0);
+    const subtotal = editedSites.reduce(
+      (sum, site) => sum + priceCalculatorNumber(site),
+      0,
+    );
     const total = subtotal + editedAdditionalCharges;
     const tax = total * 0.18;
     return {
@@ -687,7 +766,7 @@ function ComponentsOrders() {
 
   const handleRaiseEscalation = async () => {
     if (!selectedOrder || !hasChanges) return;
-    
+
     // Calculate site changes - compare against initial loaded rates, not original order rates
     const siteChanges = editedSites
       .map((editedSite, index) => {
@@ -703,7 +782,9 @@ function ComponentsOrders() {
         }
         return null;
       })
-      .filter((change): change is NonNullable<typeof change> => change !== null);
+      .filter(
+        (change): change is NonNullable<typeof change> => change !== null,
+      );
 
     // Calculate additional charge changes
     const additionalChargeChanges = [];
@@ -717,13 +798,15 @@ function ComponentsOrders() {
     }
 
     const editedPricing = calculateEditedTotal();
-    
-    
+
     // Use latest escalation's newTotal as oldTotal if escalations exist
-    const oldTotal = selectedOrder.priceEscalation && selectedOrder.priceEscalation.length > 0
-      ? selectedOrder.priceEscalation[selectedOrder.priceEscalation.length - 1].newTotal
-      : selectedOrder.total;
-    
+    const oldTotal =
+      selectedOrder.priceEscalation && selectedOrder.priceEscalation.length > 0
+        ? selectedOrder.priceEscalation[
+            selectedOrder.priceEscalation.length - 1
+          ].newTotal
+        : selectedOrder.total;
+
     const success = await raiseEscalation({
       orderId: selectedOrder._id,
       siteChanges,
@@ -731,7 +814,7 @@ function ComponentsOrders() {
       oldTotal,
       newTotal: editedPricing.total,
     });
-    
+
     if (success) {
       setDetailsOpen(false);
       mutate();
@@ -740,10 +823,13 @@ function ComponentsOrders() {
 
   const handleAcceptEscalation = async () => {
     if (!selectedOrder) return;
-    
-    
-    const success = await acceptEscalation(selectedOrder._id, editedSites, editedAdditionalCharges);
-    
+
+    const success = await acceptEscalation(
+      selectedOrder._id,
+      editedSites,
+      editedAdditionalCharges,
+    );
+
     if (success) {
       setDetailsOpen(false);
       mutate();
@@ -755,7 +841,7 @@ function ComponentsOrders() {
     if (!orderToUse) return;
     // console.log('📍 Opening map for order:', orderToUse.orderNumber);
     // console.log('📍 Order sites:', orderToUse.sites);
-    
+
     // Set the order whose map should be shown
     setMapOrder(orderToUse);
     setMapOpen(true);
@@ -764,145 +850,165 @@ function ComponentsOrders() {
   const handleJobCart = async (order?: VendorOrder) => {
     const orderToUse = order || selectedOrder;
     if (!orderToUse) return;
-    
+
     // Check if at least one site is selected
     if (selectedSites.length === 0) {
-      toast.error('Please select at least one site for the job card');
+      toast.error("Please select at least one site for the job card");
       return;
     }
-    
+
     try {
       // Get only selected sites
-      const sitesToSend = orderToUse.sites.filter((_, index) => selectedSites.includes(index));
-      
+      const sitesToSend = orderToUse.sites.filter((_, index) =>
+        selectedSites.includes(index),
+      );
+
       // Call API to create or get existing OpenJobCards entry
-      const response = await fetch('/api/vendor/orders/create-job-card', {
-        method: 'POST',
+      const response = await fetch("/api/vendor/orders/create-job-card", {
+        method: "POST",
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           orderId: orderToUse._id,
-          selectedSites: sitesToSend
+          selectedSites: sitesToSend,
         }),
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
-        console.error('API Error:', data);
-        throw new Error(data.message || 'Failed to create job card');
+        console.error("API Error:", data);
+        throw new Error(data.message || "Failed to create job card");
       }
 
-      toast.success('Job card created successfully!');
-      
+      toast.success("Job card created successfully!");
+
       // Reset selected sites
       setSelectedSites([]);
-      
-      // Refresh job cards list  
+
+      // Refresh job cards list
       mutateJobCards();
-      
+
       // Refresh orders to show updated count
       mutate();
     } catch (error: any) {
-      console.error('Error creating job card:', error);
-      toast.error(error.message || 'Failed to create job card');
+      console.error("Error creating job card:", error);
+      toast.error(error.message || "Failed to create job card");
     }
-  }
+  };
 
   const handleInstallCert = async (order?: VendorOrder) => {
     const orderToUse = order || selectedOrder;
     if (!orderToUse) return;
-    
+
     if (selectedSites.length === 0) {
-      toast.error('Please select at least one site for the installation certificate');
+      toast.error(
+        "Please select at least one site for the installation certificate",
+      );
       return;
     }
 
     try {
-      const sitesToSend = orderToUse.sites.filter((_, index) => selectedSites.includes(index));
+      const sitesToSend = orderToUse.sites.filter((_, index) =>
+        selectedSites.includes(index),
+      );
 
       // Call API to create Installation Certificate entry
-      const response = await fetch('/api/vendor/orders/create-installation-certificate', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        "/api/vendor/orders/create-installation-certificate",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            orderId: orderToUse._id,
+            selectedSites: sitesToSend,
+          }),
         },
-        body: JSON.stringify({ orderId: orderToUse._id, selectedSites: sitesToSend }),
-      });
+      );
 
       const data = await response.json();
-      
+
       if (!response.ok) {
-        console.error('API Error:', data);
-        throw new Error(data.message || 'Failed to create installation certificate');
+        console.error("API Error:", data);
+        throw new Error(
+          data.message || "Failed to create installation certificate",
+        );
       }
 
-      toast.success('Installation certificate created successfully!');
-      
+      toast.success("Installation certificate created successfully!");
+
       // Reset selected sites
       setSelectedSites([]);
-      
+
       // Refresh installation certificates list
       mutateInstallCerts();
-      
+
       // Refresh orders to show updated count
       mutate();
     } catch (error: any) {
-      console.error('Error creating installation certificate:', error);
-      toast.error(error.message || 'Failed to create installation certificate');
+      console.error("Error creating installation certificate:", error);
+      toast.error(error.message || "Failed to create installation certificate");
     }
-  }
+  };
 
   const handleMarkJobCardReady = async (jobCardId: string) => {
     if (!accessToken) return;
-    
+
     setUpdatingJobCardId(jobCardId);
-    
+
     try {
-      const response = await fetch('/api/vendor/openjobcards/update-order-status', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
+      const response = await fetch(
+        "/api/vendor/openjobcards/update-order-status",
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            jobCardId: jobCardId,
+            status: "printed",
+          }),
         },
-        body: JSON.stringify({
-          jobCardId: jobCardId,
-          status: 'printed',
-        }),
-      });
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to update job card status');
+        throw new Error(data.error || "Failed to update job card status");
       }
 
-      toast.success('Job Card marked as Ready (Printed)!');
-      
+      toast.success("Job Card marked as Ready (Printed)!");
+
       // Refresh job cards list
       mutateJobCards();
     } catch (error: any) {
-      console.error('Error updating job card status:', error);
-      toast.error(error.message || 'Failed to update job card status');
+      console.error("Error updating job card status:", error);
+      toast.error(error.message || "Failed to update job card status");
     } finally {
       setUpdatingJobCardId(null);
     }
-  }
+  };
 
   const getStoreLocations = () => {
     const orderToUse = mapOrder;
     if (!orderToUse) return [];
-    
+
     // Extract unique store locations from order sites
     const locationsMap = new Map();
-    
+
     orderToUse.sites.forEach((site, index) => {
       // console.log(`📍 Site ${index}:`, site.storeName, 'has storeLocation?', !!site.storeLocation);
-      
-      if (site.storeLocation?.coordinates && Array.isArray(site.storeLocation.coordinates)) {
+
+      if (
+        site.storeLocation?.coordinates &&
+        Array.isArray(site.storeLocation.coordinates)
+      ) {
         const key = `${site.storeLocation.coordinates[0]}-${site.storeLocation.coordinates[1]}`;
         if (!locationsMap.has(key)) {
           locationsMap.set(key, {
@@ -914,10 +1020,10 @@ function ComponentsOrders() {
         }
       }
     });
-    
+
     const locations = Array.from(locationsMap.values());
-      // console.log('📍 Total unique locations extracted:', locations.length);
-      // console.log('📍 Locations array:', locations);
+    // console.log('📍 Total unique locations extracted:', locations.length);
+    // console.log('📍 Locations array:', locations);
     return locations;
   };
 
@@ -953,15 +1059,13 @@ function ComponentsOrders() {
       jobCart: handleJobCart,
       installCert: handleInstallCert,
       generatePPT: handleGeneratePPT,
-      generatingPPT: isGeneratingPPT
+      generatingPPT: isGeneratingPPT,
     },
   });
 
   if (isLoading) {
     return <TableSkeleton />;
   }
-
- 
 
   return (
     <div className="w-full space-y-4 p-4">
@@ -1312,18 +1416,25 @@ function ComponentsOrders() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          {selectedOrder.orderStatus !== "new" && selectedOrder.orderStatus !== "rejected" && selectedOrder.orderStatus !== "escalation" && (
-                            <TableHead className="w-12">
-                               <Checkbox
-                          id="select-all-sites"
-                          checked={(() => {
-                            const selectableSites = getSelectableSiteIndices();
-                            return selectedSites.length === selectableSites.length && selectableSites.length > 0;
-                          })()}
-                          onCheckedChange={handleSelectAllSites}
-                        />
-                            </TableHead>
-                          )}
+                          {selectedOrder.orderStatus !== "new" &&
+                            selectedOrder.orderStatus !== "rejected" &&
+                            selectedOrder.orderStatus !== "escalation" && (
+                              <TableHead className="w-12">
+                                <Checkbox
+                                  id="select-all-sites"
+                                  checked={(() => {
+                                    const selectableSites =
+                                      getSelectableSiteIndices();
+                                    return (
+                                      selectedSites.length ===
+                                        selectableSites.length &&
+                                      selectableSites.length > 0
+                                    );
+                                  })()}
+                                  onCheckedChange={handleSelectAllSites}
+                                />
+                              </TableHead>
+                            )}
                           <TableHead>Site</TableHead>
                           <TableHead>Store</TableHead>
                           <TableHead>Dimensions</TableHead>
@@ -1336,20 +1447,40 @@ function ComponentsOrders() {
                       <TableBody>
                         {editedSites.map((site, index) => {
                           const siteTotal = priceCalculatorNumber(site);
-                          const isRejected = site.rejectionStatus === 'rejected';
+                          const isRejected =
+                            site.rejectionStatus === "rejected";
 
                           return (
-                            <TableRow key={index} className={isRejected ? 'bg-red-50 dark:bg-red-950/20' : ''}>
-                              {selectedOrder.orderStatus !== "new" && selectedOrder.orderStatus !== "rejected" && selectedOrder.orderStatus !== "escalation" && (
-                                <TableCell className={shouldDisableSite(index) ? "opacity-50" : ""}>
-                                  <Checkbox
-                                    checked={selectedSites.includes(index)}
-                                    onCheckedChange={() => handleSiteSelection(index)}
-                                    disabled={shouldDisableSite(index)}
-                                  />
-                                </TableCell>
-                              )}
-                              <TableCell className={shouldDisableSite(index) ? "opacity-50" : ""}>
+                            <TableRow
+                              key={index}
+                              className={
+                                isRejected ? "bg-red-50 dark:bg-red-950/20" : ""
+                              }
+                            >
+                              {selectedOrder.orderStatus !== "new" &&
+                                selectedOrder.orderStatus !== "rejected" &&
+                                selectedOrder.orderStatus !== "escalation" && (
+                                  <TableCell
+                                    className={
+                                      shouldDisableSite(index)
+                                        ? "opacity-50"
+                                        : ""
+                                    }
+                                  >
+                                    <Checkbox
+                                      checked={selectedSites.includes(index)}
+                                      onCheckedChange={() =>
+                                        handleSiteSelection(index)
+                                      }
+                                      disabled={shouldDisableSite(index)}
+                                    />
+                                  </TableCell>
+                                )}
+                              <TableCell
+                                className={
+                                  shouldDisableSite(index) ? "opacity-50" : ""
+                                }
+                              >
                                 <div className="flex items-center gap-3">
                                   {site.photo && (
                                     <img
@@ -1367,30 +1498,57 @@ function ComponentsOrders() {
                                         {site.siteDescription}
                                       </p>
                                     )}
-                                    {isSiteUsedInJobCard(index) && !allJobCardsPrinted && (
-                                      <Badge variant="secondary" className="mt-1 text-xs">
-                                        Used in Job Card
-                                      </Badge>
-                                    )}
+                                    {isSiteUsedInJobCard(index) &&
+                                      !allJobCardsPrinted && (
+                                        <Badge
+                                          variant="secondary"
+                                          className="mt-1 text-xs"
+                                        >
+                                          Used in Job Card
+                                        </Badge>
+                                      )}
                                     {isSiteUsedInInstallCert(index) && (
-                                      <Badge variant="secondary" className="mt-1 text-xs">
+                                      <Badge
+                                        variant="secondary"
+                                        className="mt-1 text-xs"
+                                      >
                                         Used in Install Cert
                                       </Badge>
                                     )}
                                   </div>
                                 </div>
                               </TableCell>
-                              <TableCell className={shouldDisableSite(index) ? "opacity-50" : ""}>{site.storeName}</TableCell>
-                              <TableCell className={shouldDisableSite(index) ? "opacity-50" : ""}>
+                              <TableCell
+                                className={
+                                  shouldDisableSite(index) ? "opacity-50" : ""
+                                }
+                              >
+                                {site.storeName}
+                              </TableCell>
+                              <TableCell
+                                className={
+                                  shouldDisableSite(index) ? "opacity-50" : ""
+                                }
+                              >
                                 {site.width} x {site.height}{" "}
                                 {site.measurementUnit}
                               </TableCell>
-                              <TableCell className={shouldDisableSite(index) ? "opacity-50" : ""}>
-                                {selectedOrder.orderStatus === "new" || selectedOrder.orderStatus === "escalation" ? (
+                              <TableCell
+                                className={
+                                  shouldDisableSite(index) ? "opacity-50" : ""
+                                }
+                              >
+                                {selectedOrder.orderStatus === "new" ||
+                                selectedOrder.orderStatus === "escalation" ? (
                                   <Input
                                     type="number"
                                     value={site.rate}
-                                    onChange={(e) => handleSiteRateChange(index, parseFloat(e.target.value) || 0)}
+                                    onChange={(e) =>
+                                      handleSiteRateChange(
+                                        index,
+                                        parseFloat(e.target.value) || 0,
+                                      )
+                                    }
                                     className="w-24"
                                   />
                                 ) : (
@@ -1400,8 +1558,16 @@ function ComponentsOrders() {
                                   </>
                                 )}
                               </TableCell>
-                              <TableCell className={shouldDisableSite(index) ? "opacity-50" : ""}>{site.quantity}</TableCell>
-                              <TableCell className={`text-right font-medium ${shouldDisableSite(index) ? "opacity-50" : ""}`}>
+                              <TableCell
+                                className={
+                                  shouldDisableSite(index) ? "opacity-50" : ""
+                                }
+                              >
+                                {site.quantity}
+                              </TableCell>
+                              <TableCell
+                                className={`text-right font-medium ${shouldDisableSite(index) ? "opacity-50" : ""}`}
+                              >
                                 ₹{siteTotal.toFixed(2)}
                               </TableCell>
                               <TableCell className="text-center">
@@ -1410,7 +1576,9 @@ function ComponentsOrders() {
                                     variant="destructive"
                                     className="cursor-pointer hover:bg-red-700"
                                     onClick={() => {
-                                      setSelectedRejectionRemarks(site.rejectionRemarks || '');
+                                      setSelectedRejectionRemarks(
+                                        site.rejectionRemarks || "",
+                                      );
                                       setRejectionRemarksOpen(true);
                                     }}
                                   >
@@ -1429,27 +1597,39 @@ function ComponentsOrders() {
                 {/* Pricing Breakdown */}
                 <div className="space-y-2 max-w-sm ml-auto">
                   {(() => {
-                    const pricing = (selectedOrder.orderStatus === "new" || selectedOrder.orderStatus === "escalation") ? calculateEditedTotal() : {
-                      subtotal: selectedOrder.subtotal,
-                      additionalCharges: selectedOrder.additionalChargesTotal,
-                      tax: selectedOrder.tax,
-                      total: selectedOrder.total,
-                    };
+                    const pricing =
+                      selectedOrder.orderStatus === "new" ||
+                      selectedOrder.orderStatus === "escalation"
+                        ? calculateEditedTotal()
+                        : {
+                            subtotal: selectedOrder.subtotal,
+                            additionalCharges:
+                              selectedOrder.additionalChargesTotal,
+                            tax: selectedOrder.tax,
+                            total: selectedOrder.total,
+                          };
                     return (
                       <>
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Subtotal</span>
+                          <span className="text-muted-foreground">
+                            Subtotal
+                          </span>
                           <span>₹{pricing.subtotal.toFixed(2)}</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">
                             Additional Charges
                           </span>
-                          {(selectedOrder.orderStatus === "new" || selectedOrder.orderStatus === "escalation") ? (
+                          {selectedOrder.orderStatus === "new" ||
+                          selectedOrder.orderStatus === "escalation" ? (
                             <Input
                               type="number"
                               value={editedAdditionalCharges}
-                              onChange={(e) => handleAdditionalChargesChange(parseFloat(e.target.value) || 0)}
+                              onChange={(e) =>
+                                handleAdditionalChargesChange(
+                                  parseFloat(e.target.value) || 0,
+                                )
+                              }
                               className="w-32 h-8 text-right"
                             />
                           ) : (
@@ -1457,7 +1637,9 @@ function ComponentsOrders() {
                           )}
                         </div>
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Tax (GST 18%)</span>
+                          <span className="text-muted-foreground">
+                            Tax (GST 18%)
+                          </span>
                           <span>₹{pricing.tax.toFixed(2)}</span>
                         </div>
                         <Separator />
@@ -1481,228 +1663,439 @@ function ComponentsOrders() {
                 )}
 
                 {/* Escalation History */}
-                {selectedOrder.priceEscalation && selectedOrder.priceEscalation.length > 0 && (
-                  <div className="space-y-3">
-                    <h3 className="text-lg font-semibold">Escalation History</h3>
-                    <div className="space-y-4">
-                      {selectedOrder.priceEscalation.map((escalation: any, index: number) => (
-                        <div key={index} className="border rounded-lg p-4 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">
-                                {escalation.userType === "vendor" ? "Vendor" : "Brand"} Escalation #{index + 1}
-                              </span>
-                              <span className={`px-2 py-1 rounded text-xs ${
-                                escalation.userType === "vendor" 
-                                  ? "bg-blue-100 text-blue-700" 
-                                  : "bg-purple-100 text-purple-700"
-                              }`}>
-                                {escalation.userType}
-                              </span>
-                            </div>
-                            <span className="text-sm text-muted-foreground">
-                              {format(new Date(escalation.raisedAt), "MMM dd, yyyy HH:mm")}
-                            </span>
-                          </div>
-                          
-                          {escalation.reason && (
-                            <p className="text-sm text-muted-foreground">{escalation.reason}</p>
-                          )}
-                          
-                          {escalation.siteChanges && escalation.siteChanges.length > 0 && (
-                            <div className="space-y-1">
-                              <p className="text-sm font-medium">Site Rate Changes:</p>
-                              {escalation.siteChanges.map((change: any, i: number) => (
-                                <div key={i} className="text-sm pl-4">
-                                  <span className="text-muted-foreground">{change.storeName} - {change.elementName}:</span>{" "}
-                                  <span className="line-through text-red-600">₹{change.oldRate}</span>
-                                  {" → "}
-                                  <span className="text-green-600 font-medium">₹{change.newRate}</span>
+                {selectedOrder.priceEscalation &&
+                  selectedOrder.priceEscalation.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-semibold">
+                        Escalation History
+                      </h3>
+                      <div className="space-y-4">
+                        {selectedOrder.priceEscalation.map(
+                          (escalation: any, index: number) => (
+                            <div
+                              key={index}
+                              className="border rounded-lg p-4 space-y-2"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">
+                                    {escalation.userType === "vendor"
+                                      ? "Vendor"
+                                      : "Brand"}{" "}
+                                    Escalation #{index + 1}
+                                  </span>
+                                  <span
+                                    className={`px-2 py-1 rounded text-xs ${
+                                      escalation.userType === "vendor"
+                                        ? "bg-blue-100 text-blue-700"
+                                        : "bg-purple-100 text-purple-700"
+                                    }`}
+                                  >
+                                    {escalation.userType}
+                                  </span>
                                 </div>
-                              ))}
+                                <span className="text-sm text-muted-foreground">
+                                  {format(
+                                    new Date(escalation.raisedAt),
+                                    "MMM dd, yyyy HH:mm",
+                                  )}
+                                </span>
+                              </div>
+
+                              {escalation.reason && (
+                                <p className="text-sm text-muted-foreground">
+                                  {escalation.reason}
+                                </p>
+                              )}
+
+                              {escalation.siteChanges &&
+                                escalation.siteChanges.length > 0 && (
+                                  <div className="space-y-1">
+                                    <p className="text-sm font-medium">
+                                      Site Rate Changes:
+                                    </p>
+                                    {escalation.siteChanges.map(
+                                      (change: any, i: number) => (
+                                        <div key={i} className="text-sm pl-4">
+                                          <span className="text-muted-foreground">
+                                            {change.storeName} -{" "}
+                                            {change.elementName}:
+                                          </span>{" "}
+                                          <span className="line-through text-red-600">
+                                            ₹{change.oldRate}
+                                          </span>
+                                          {" → "}
+                                          <span className="text-green-600 font-medium">
+                                            ₹{change.newRate}
+                                          </span>
+                                        </div>
+                                      ),
+                                    )}
+                                  </div>
+                                )}
+
+                              {escalation.additionalChargeChanges &&
+                                escalation.additionalChargeChanges.length >
+                                  0 && (
+                                  <div className="space-y-1">
+                                    <p className="text-sm font-medium">
+                                      Additional Charges:
+                                    </p>
+                                    {escalation.additionalChargeChanges.map(
+                                      (change: any, i: number) => (
+                                        <div key={i} className="text-sm pl-4">
+                                          <span className="line-through text-red-600">
+                                            ₹{change.oldAmount}
+                                          </span>
+                                          {" → "}
+                                          <span className="text-green-600 font-medium">
+                                            ₹{change.newAmount}
+                                          </span>
+                                        </div>
+                                      ),
+                                    )}
+                                  </div>
+                                )}
+
+                              <div className="flex items-center justify-between pt-2 border-t">
+                                <span className="text-sm font-medium">
+                                  Total Change:
+                                </span>
+                                <span
+                                  className={`font-bold ${
+                                    escalation.totalDifference > 0
+                                      ? "text-green-600"
+                                      : escalation.totalDifference < 0
+                                        ? "text-red-600"
+                                        : ""
+                                  }`}
+                                >
+                                  {escalation.totalDifference > 0 ? "+" : ""}₹
+                                  {escalation.totalDifference?.toFixed(2)}
+                                </span>
+                              </div>
                             </div>
-                          )}
-                          
-                          {escalation.additionalChargeChanges && escalation.additionalChargeChanges.length > 0 && (
-                            <div className="space-y-1">
-                              <p className="text-sm font-medium">Additional Charges:</p>
-                              {escalation.additionalChargeChanges.map((change: any, i: number) => (
-                                <div key={i} className="text-sm pl-4">
-                                  <span className="line-through text-red-600">₹{change.oldAmount}</span>
-                                  {" → "}
-                                  <span className="text-green-600 font-medium">₹{change.newAmount}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          
-                          <div className="flex items-center justify-between pt-2 border-t">
-                            <span className="text-sm font-medium">Total Change:</span>
-                            <span className={`font-bold ${
-                              escalation.totalDifference > 0 ? "text-green-600" : 
-                              escalation.totalDifference < 0 ? "text-red-600" : ""
-                            }`}>
-                              {escalation.totalDifference > 0 ? "+" : ""}
-                              ₹{escalation.totalDifference?.toFixed(2)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
+                          ),
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
                 {/* Buttons */}
-                {selectedOrder.orderStatus !== "accepted" && selectedOrder.orderStatus === "new" && (
-                  <div className="flex gap-2">
-                    <Button variant={"outline"} onClick={() => handleViewMap()}>
-                      <MapPin /> View Map
-                    </Button>
-                    <Button 
-                      variant={"outline"} 
-                      onClick={() => handleAcceptOrder(selectedOrder._id)}
-                      disabled={isAccepting || hasChanges}
-                    >
-                      <CircleCheckBig /> {isAccepting ? "Accepting..." : "Accept Order"}
-                    </Button>
-                    <Button 
-                      variant={"outline"} 
-                      onClick={() => handleRejectOrder(selectedOrder._id)}
-                      disabled={isRejecting}
-                    >
-                      <CircleX /> {isRejecting ? "Rejecting..." : "Reject Order"}
-                    </Button>
-                    <Button 
-                      variant={"outline"}
-                      onClick={handleRaiseEscalation}
-                      disabled={!hasChanges || isEscalating}
-                    >
-                      <ArrowUpFromDot /> {isEscalating ? "Raising..." : "Raise Escalation"}
-                    </Button>
-                  </div>
-                )}
+                {selectedOrder.orderStatus !== "accepted" &&
+                  selectedOrder.orderStatus === "new" && (
+                    <div className="flex gap-2">
+                      <Button
+                        variant={"outline"}
+                        onClick={() => handleViewMap()}
+                      >
+                        <MapPin /> View Map
+                      </Button>
+                      <Button
+                        variant={"outline"}
+                        onClick={() => handleAcceptOrder(selectedOrder._id)}
+                        disabled={isAccepting || hasChanges}
+                      >
+                        <CircleCheckBig />{" "}
+                        {isAccepting ? "Accepting..." : "Accept Order"}
+                      </Button>
+                      <Button
+                        variant={"outline"}
+                        onClick={() => handleRejectOrder(selectedOrder._id)}
+                        disabled={isRejecting}
+                      >
+                        <CircleX />{" "}
+                        {isRejecting ? "Rejecting..." : "Reject Order"}
+                      </Button>
+                      <Button
+                        variant={"outline"}
+                        onClick={handleRaiseEscalation}
+                        disabled={!hasChanges || isEscalating}
+                      >
+                        <ArrowUpFromDot />{" "}
+                        {isEscalating ? "Raising..." : "Raise Escalation"}
+                      </Button>
+                    </div>
+                  )}
                 {selectedOrder.orderStatus === "escalation" && (
                   <div className="flex gap-2">
                     <Button variant={"outline"} onClick={() => handleViewMap()}>
                       <MapPin /> View Map
                     </Button>
-                    <Button 
+                    <Button
                       variant={"default"}
                       onClick={handleAcceptEscalation}
                       disabled={isAcceptingEscalation || hasChanges}
                     >
-                      <CircleCheckBig /> {isAcceptingEscalation ? "Accepting..." : "Accept Escalation"}
+                      <CircleCheckBig />{" "}
+                      {isAcceptingEscalation
+                        ? "Accepting..."
+                        : "Accept Escalation"}
                     </Button>
-                    <Button 
+                    <Button
                       variant={"outline"}
                       onClick={handleRaiseEscalation}
                       disabled={!hasChanges || isEscalating}
                     >
-                      <ArrowUpFromDot /> {isEscalating ? "Counter..." : "Counter Offer"}
+                      <ArrowUpFromDot />{" "}
+                      {isEscalating ? "Counter..." : "Counter Offer"}
                     </Button>
                   </div>
                 )}
-                {selectedOrder.orderStatus !== "new" && selectedOrder.orderStatus !== "rejected" && selectedOrder.orderStatus !== "escalation" && (
-                  <>
-                    <div className="flex gap-2">
-                      <Button variant={"outline"} onClick={() => handleViewMap(selectedOrder)}>
-                        <MapPin /> View Map
-                      </Button>
-                      <Button
-                        variant={"outline"}
-                        onClick={() => handleJobCart(selectedOrder)}
-                        disabled={allJobCardsPrinted}
-                      >
-                        <Printer /> Job Card
-                      </Button>
-                      <Button variant={"outline"} onClick={() => handleInstallCert(selectedOrder)}>
-                        <Printer /> Install Certificate
-                      </Button>
-                      <Button variant={"outline"}>
-                        <Ban /> Cancel Order
-                      </Button>
-                      <Button onClick={() => handleGeneratePPT(selectedOrder)} variant={"outline"} disabled={isGeneratingPPT}>
-                        <Presentation /> {isGeneratingPPT ? 'Generating...' : 'Generate PPT'}
-                      </Button>
-                      {(() => {
-                        const totalVendorVerified = installCerts.reduce((total, cert) => {
-                          return total + getVendorVerifiedCount(cert);
-                        }, 0);
-                        
-                        if (totalVendorVerified > 0) {
-                          return (
-                            <Button
-                              variant="default"
-                              onClick={() => {
-                                // Find the first cert with vendor verified sites and use it for modal
-                                const certWithVerified = installCerts.find(cert => getVendorVerifiedCount(cert) > 0);
-                                if (certWithVerified) {
-                                  handleFinalSubmitClick(certWithVerified);
-                                }
-                              }}
-                              disabled={isFinalSubmitting}
-                              className="bg-green-600 hover:bg-green-700"
-                            >
-                              {isFinalSubmitting ? (
-                                <>
-                                  <div className="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1" />
-                                  Submitting...
-                                </>
-                              ) : (
-                                <>
-                                  <CircleCheckBig className="mr-2 h-4 w-4" /> Final Submit ({totalVendorVerified})
-                                </>
-                              )}
-                            </Button>
+                {selectedOrder.orderStatus !== "new" &&
+                  selectedOrder.orderStatus !== "rejected" &&
+                  selectedOrder.orderStatus !== "escalation" && (
+                    <>
+                      <div className="flex gap-2">
+                        <Button
+                          variant={"outline"}
+                          onClick={() => handleViewMap(selectedOrder)}
+                        >
+                          <MapPin /> View Map
+                        </Button>
+                        <Button
+                          variant={"outline"}
+                          onClick={() => handleJobCart(selectedOrder)}
+                          disabled={allJobCardsPrinted}
+                        >
+                          <Printer /> Job Card
+                        </Button>
+                        <Button
+                          variant={"outline"}
+                          onClick={() => handleInstallCert(selectedOrder)}
+                        >
+                          <Printer /> Install Certificate
+                        </Button>
+                        <Button variant={"outline"}>
+                          <Ban /> Cancel Order
+                        </Button>
+                        <Button
+                          onClick={() => handleGeneratePPT(selectedOrder)}
+                          variant={"outline"}
+                          disabled={isGeneratingPPT}
+                        >
+                          <Presentation />{" "}
+                          {isGeneratingPPT ? "Generating..." : "Generate PPT"}
+                        </Button>
+                        {(() => {
+                          const totalVendorVerified = installCerts.reduce(
+                            (total, cert) => {
+                              return total + getVendorVerifiedCount(cert);
+                            },
+                            0,
                           );
-                        }
-                        return null;
-                      })()}
-                    </div>
-                    <div className={`${installCerts.length > 0  ? "grid grid-cols-2 gap-4" : "grid-cols-1 gap-4"}`}>
-                    {/* List of Job Cards */}
-                    {jobCards.length > 0 && (
-                      <div className="mt-4 space-y-2">
-                        <h3 className="text-lg font-semibold">Created Job Cards ({jobCards.length})</h3>
-                        <div className="space-y-2">
-                          {jobCards.map((jobCard) => {
-                            const printedSitesCount = jobCard.sites.filter(s => s.status === 'printed').length;
-                            const totalSites = jobCard.sites.length;
-                            const allSitesPrinted = printedSitesCount === totalSites;
-                            const progressPercent = totalSites > 0 ? (printedSitesCount / totalSites) * 100 : 0;
-                            
+
+                          if (totalVendorVerified > 0) {
                             return (
-                              <Card key={jobCard._id} className="p-3">
-                                <div className="space-y-3">
+                              <Button
+                                variant="default"
+                                onClick={() => {
+                                  // Find the first cert with vendor verified sites and use it for modal
+                                  const certWithVerified = installCerts.find(
+                                    (cert) => getVendorVerifiedCount(cert) > 0,
+                                  );
+                                  if (certWithVerified) {
+                                    handleFinalSubmitClick(certWithVerified);
+                                  }
+                                }}
+                                disabled={isFinalSubmitting}
+                                className="bg-green-600 hover:bg-green-700"
+                              >
+                                {isFinalSubmitting ? (
+                                  <>
+                                    <div className="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1" />
+                                    Submitting...
+                                  </>
+                                ) : (
+                                  <>
+                                    <CircleCheckBig className="mr-2 h-4 w-4" />{" "}
+                                    Final Submit ({totalVendorVerified})
+                                  </>
+                                )}
+                              </Button>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                      <div
+                        className={`${installCerts.length > 0 ? "grid grid-cols-2 gap-4" : "grid-cols-1 gap-4"}`}
+                      >
+                        {/* List of Job Cards */}
+                        {jobCards.length > 0 && (
+                          <div className="mt-4 space-y-2">
+                            <h3 className="text-lg font-semibold">
+                              Created Job Cards ({jobCards.length})
+                            </h3>
+                            <div className="space-y-2">
+                              {jobCards.map((jobCard) => {
+                                const printedSitesCount = jobCard.sites.filter(
+                                  (s) => s.status === "printed",
+                                ).length;
+                                const totalSites = jobCard.sites.length;
+                                const allSitesPrinted =
+                                  printedSitesCount === totalSites;
+                                const progressPercent =
+                                  totalSites > 0
+                                    ? (printedSitesCount / totalSites) * 100
+                                    : 0;
+
+                                return (
+                                  <Card key={jobCard._id} className="p-3">
+                                    <div className="space-y-3">
+                                      <div className="flex items-center justify-between">
+                                        <div className="space-y-1">
+                                          <div className="flex items-center gap-2">
+                                            <Badge variant="outline">
+                                              Job Card #{jobCard.jobCardNumber}
+                                            </Badge>
+                                            <Badge variant="outline">
+                                              {totalSites} Site
+                                              {totalSites > 1 ? "s" : ""}
+                                            </Badge>
+                                            <Badge
+                                              variant={
+                                                jobCard.orderStatus ===
+                                                "completed"
+                                                  ? "default"
+                                                  : jobCard.orderStatus ===
+                                                      "in-progress"
+                                                    ? "secondary"
+                                                    : jobCard.orderStatus ===
+                                                        "printed"
+                                                      ? "default"
+                                                      : "outline"
+                                              }
+                                              className={
+                                                jobCard.orderStatus ===
+                                                "printed"
+                                                  ? "bg-green-600"
+                                                  : ""
+                                              }
+                                            >
+                                              {jobCard.orderStatus}
+                                            </Badge>
+                                          </div>
+                                          <p className="text-sm text-muted-foreground">
+                                            Created:{" "}
+                                            {format(
+                                              new Date(jobCard.createdAt),
+                                              "dd MMM yyyy, HH:mm",
+                                            )}
+                                          </p>
+                                          <div className="text-xs text-muted-foreground">
+                                            Sites:{" "}
+                                            {jobCard.sites
+                                              .map((s) => s.storeName)
+                                              .join(", ")}
+                                          </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                              setViewJobCardData(jobCard);
+                                              setViewJobCardOpen(true);
+                                            }}
+                                          >
+                                            <Eye className="w-4 h-4 mr-1" />{" "}
+                                            View
+                                          </Button>
+                                        </div>
+                                      </div>
+
+                                      {/* Progress Bar */}
+                                      <div className="space-y-2">
+                                        <div className="flex items-center justify-between text-sm">
+                                          <span className="text-muted-foreground">
+                                            Printing Progress
+                                          </span>
+                                          <span className="font-medium">
+                                            {printedSitesCount}/{totalSites}{" "}
+                                            Sites Printed
+                                          </span>
+                                        </div>
+                                        <Progress
+                                          value={progressPercent}
+                                          className="h-2"
+                                        />
+                                      </div>
+
+                                      {/* Ready Button - Show only when all sites are printed and status is not already "printed" */}
+                                      {allSitesPrinted &&
+                                        jobCard.orderStatus !== "printed" && (
+                                          <Button
+                                            variant="default"
+                                            className="w-full bg-green-600 hover:bg-green-700"
+                                            size="sm"
+                                            onClick={() =>
+                                              handleMarkJobCardReady(
+                                                jobCard._id,
+                                              )
+                                            }
+                                            disabled={
+                                              updatingJobCardId === jobCard._id
+                                            }
+                                          >
+                                            {updatingJobCardId === jobCard._id
+                                              ? "Marking Ready..."
+                                              : "✓ Mark as Ready (Printed)"}
+                                          </Button>
+                                        )}
+                                    </div>
+                                  </Card>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* List of Installation Certificates */}
+                        {installCerts.length > 0 && (
+                          <div className="mt-4 space-y-2">
+                            <h3 className="text-lg font-semibold">
+                              Created Installation Certificates (
+                              {installCerts.length})
+                            </h3>
+                            <div className="space-y-2">
+                              {installCerts.map((cert) => (
+                                <Card key={cert._id} className="p-3">
                                   <div className="flex items-center justify-between">
                                     <div className="space-y-1">
                                       <div className="flex items-center gap-2">
                                         <Badge variant="outline">
-                                          Job Card #{jobCard.jobCardNumber}
+                                          Installation Certificate
                                         </Badge>
                                         <Badge variant="outline">
-                                          {totalSites} Site{totalSites > 1 ? 's' : ''}
+                                          {cert.sites.length} Site
+                                          {cert.sites.length > 1 ? "s" : ""}
                                         </Badge>
                                         <Badge
                                           variant={
-                                            jobCard.orderStatus === "completed"
+                                            cert.orderStatus === "completed"
                                               ? "default"
-                                              : jobCard.orderStatus === "in-progress"
-                                              ? "secondary"
-                                              : jobCard.orderStatus === "printed"
-                                              ? "default"
-                                              : "outline"
+                                              : cert.orderStatus ===
+                                                  "in-progress"
+                                                ? "secondary"
+                                                : "outline"
                                           }
-                                          className={jobCard.orderStatus === "printed" ? "bg-green-600" : ""}
                                         >
-                                          {jobCard.orderStatus}
+                                          {cert.orderStatus}
                                         </Badge>
                                       </div>
                                       <p className="text-sm text-muted-foreground">
-                                        Created: {format(new Date(jobCard.createdAt), 'dd MMM yyyy, HH:mm')}
+                                        Created:{" "}
+                                        {format(
+                                          new Date(cert.createdAt),
+                                          "dd MMM yyyy, HH:mm",
+                                        )}
                                       </p>
                                       <div className="text-xs text-muted-foreground">
-                                        Sites: {jobCard.sites.map(s => s.storeName).join(', ')}
+                                        Sites:{" "}
+                                        {cert.sites
+                                          .map((s) => s.storeName)
+                                          .join(", ")}
                                       </div>
                                     </div>
                                     <div className="flex gap-2">
@@ -1710,126 +2103,57 @@ function ComponentsOrders() {
                                         variant="outline"
                                         size="sm"
                                         onClick={() => {
-                                          setViewJobCardData(jobCard);
-                                          setViewJobCardOpen(true);
+                                          setViewInstallCertData(cert);
+                                          setViewInstallCertOpen(true);
                                         }}
                                       >
                                         <Eye className="w-4 h-4 mr-1" /> View
                                       </Button>
+
+                                      {(() => {
+                                        const sitesWithImages =
+                                          cert.sites.filter(
+                                            (s: any) =>
+                                              s.capturedImages &&
+                                              s.capturedImages.length > 0,
+                                          ).length;
+                                        const vendorVerifiedCount =
+                                          getVendorVerifiedCount(cert);
+
+                                        if (sitesWithImages > 0) {
+                                          return (
+                                            <Button
+                                              variant="default"
+                                              size="sm"
+                                              onClick={() =>
+                                                handleReviewImages(cert)
+                                              }
+                                              className="relative"
+                                            >
+                                              <FileSearch className="w-4 h-4 mr-1" />{" "}
+                                              Review Images
+                                              <Badge
+                                                className="ml-2 bg-white text-primary hover:bg-white"
+                                                variant="secondary"
+                                              >
+                                                {sitesWithImages}/
+                                                {cert.sites.length}
+                                              </Badge>
+                                            </Button>
+                                          );
+                                        }
+                                        return null;
+                                      })()}
                                     </div>
                                   </div>
-                                  
-                                  {/* Progress Bar */}
-                                  <div className="space-y-2">
-                                    <div className="flex items-center justify-between text-sm">
-                                      <span className="text-muted-foreground">Printing Progress</span>
-                                      <span className="font-medium">
-                                        {printedSitesCount}/{totalSites} Sites Printed
-                                      </span>
-                                    </div>
-                                    <Progress value={progressPercent} className="h-2" />
-                                  </div>
-                                  
-                                  {/* Ready Button - Show only when all sites are printed and status is not already "printed" */}
-                                  {allSitesPrinted && jobCard.orderStatus !== 'printed' && (
-                                    <Button
-                                      variant="default"
-                                      className="w-full bg-green-600 hover:bg-green-700"
-                                      size="sm"
-                                      onClick={() => handleMarkJobCardReady(jobCard._id)}
-                                      disabled={updatingJobCardId === jobCard._id}
-                                    >
-                                      {updatingJobCardId === jobCard._id ? 'Marking Ready...' : '✓ Mark as Ready (Printed)'}
-                                    </Button>
-                                  )}
-                                </div>
-                              </Card>
-                            );
-                          })}
-                        </div>
+                                </Card>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                    
-                    {/* List of Installation Certificates */}
-                    {installCerts.length > 0 && (
-                      <div className="mt-4 space-y-2">
-                        <h3 className="text-lg font-semibold">Created Installation Certificates ({installCerts.length})</h3>
-                        <div className="space-y-2">
-                          {installCerts.map((cert) => (
-                            <Card key={cert._id} className="p-3">
-                              <div className="flex items-center justify-between">
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-2">
-                                    <Badge variant="outline">
-                                      Installation Certificate
-                                    </Badge>
-                                    <Badge variant="outline">
-                                      {cert.sites.length} Site{cert.sites.length > 1 ? 's' : ''}
-                                    </Badge>
-                                    <Badge
-                                      variant={
-                                        cert.orderStatus === "completed"
-                                          ? "default"
-                                          : cert.orderStatus === "in-progress"
-                                          ? "secondary"
-                                          : "outline"
-                                      }
-                                    >
-                                      {cert.orderStatus}
-                                    </Badge>
-                                  </div>
-                                  <p className="text-sm text-muted-foreground">
-                                    Created: {format(new Date(cert.createdAt), 'dd MMM yyyy, HH:mm')}
-                                  </p>
-                                  <div className="text-xs text-muted-foreground">
-                                    Sites: {cert.sites.map(s => s.storeName).join(', ')}
-                                  </div>
-                                </div>
-                                <div className="flex gap-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      setViewInstallCertData(cert);
-                                      setViewInstallCertOpen(true);
-                                    }}
-                                  >
-                                    <Eye className="w-4 h-4 mr-1" /> View
-                                  </Button>
-                                  
-                                  {(() => {
-                                    const sitesWithImages = cert.sites.filter(
-                                      (s: any) => s.capturedImages && s.capturedImages.length > 0
-                                    ).length;
-                                    const vendorVerifiedCount = getVendorVerifiedCount(cert);
-                                    
-                                    if (sitesWithImages > 0) {
-                                      return (
-                                        <Button
-                                          variant="default"
-                                          size="sm"
-                                          onClick={() => handleReviewImages(cert)}
-                                          className="relative"
-                                        >
-                                          <FileSearch className="w-4 h-4 mr-1" /> Review Images
-                                          <Badge className="ml-2 bg-white text-primary hover:bg-white" variant="secondary">
-                                            {sitesWithImages}/{cert.sites.length}
-                                          </Badge>
-                                        </Button>
-                                      );
-                                    }
-                                    return null;
-                                  })()}
-                                </div>
-                              </div>
-                            </Card>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    </div>
-                  </>
-                )}
+                    </>
+                  )}
               </div>
             </ScrollArea>
           )}
@@ -1852,11 +2176,11 @@ function ComponentsOrders() {
       <Dialog open={jobCardOpen} onOpenChange={setJobCardOpen}>
         <DialogContent className="max-w-6xl max-h-[95vh]">
           <DialogHeader>
-            <DialogTitle>
-              Job Card - {jobCardOrder?.orderNumber}
-            </DialogTitle>
+            <DialogTitle>Job Card - {jobCardOrder?.orderNumber}</DialogTitle>
           </DialogHeader>
-          {jobCardOrder && <JobCardPdf order={jobCardOrder} companyLogo={companyLogo} />}
+          {jobCardOrder && (
+            <JobCardPdf order={jobCardOrder} companyLogo={companyLogo} />
+          )}
         </DialogContent>
       </Dialog>
 
@@ -1865,18 +2189,19 @@ function ComponentsOrders() {
         <DialogContent className="max-w-6xl max-h-[95vh]">
           <DialogHeader>
             <DialogTitle>
-              View Job Card #{viewJobCardData?.jobCardNumber} - {viewJobCardData?.orderNumber}
+              View Job Card #{viewJobCardData?.jobCardNumber} -{" "}
+              {viewJobCardData?.orderNumber}
             </DialogTitle>
           </DialogHeader>
           {viewJobCardData && selectedOrder && (
-            <JobCardPdf 
+            <JobCardPdf
               order={{
                 ...selectedOrder,
                 openjobcardsId: viewJobCardData._id,
                 jobCardNumber: viewJobCardData.jobCardNumber,
                 sites: viewJobCardData.sites as any,
-              }} 
-              companyLogo={user?.companyLogo} 
+              }}
+              companyLogo={user?.companyLogo}
             />
           )}
         </DialogContent>
@@ -1890,7 +2215,12 @@ function ComponentsOrders() {
               Installation Certificate - {installCertOrder?.orderNumber}
             </DialogTitle>
           </DialogHeader>
-          {installCertOrder && <InstallationCertificatePdf order={installCertOrder} companyLogo={companyLogo} />}
+          {installCertOrder && (
+            <InstallationCertificatePdf
+              order={installCertOrder}
+              companyLogo={companyLogo}
+            />
+          )}
         </DialogContent>
       </Dialog>
 
@@ -1903,13 +2233,13 @@ function ComponentsOrders() {
             </DialogTitle>
           </DialogHeader>
           {viewInstallCertData && selectedOrder && (
-            <InstallationCertificatePdf 
+            <InstallationCertificatePdf
               order={{
                 ...selectedOrder,
                 installCertificateId: viewInstallCertData._id,
                 sites: viewInstallCertData.sites as any,
-              }} 
-              companyLogo={user?.companyLogo} 
+              }}
+              companyLogo={user?.companyLogo}
             />
           )}
         </DialogContent>
@@ -1921,15 +2251,17 @@ function ComponentsOrders() {
         onClose={() => setReviewImagesOpen(false)}
         certData={reviewCertData}
         mutateJobCards={mutate}
-        orderId={selectedOrder?._id || ''}
-        accessToken={accessToken || ''}
+        orderId={selectedOrder?._id || ""}
+        accessToken={accessToken || ""}
         orderSites={selectedOrder?.sites || []}
         onSuccess={async () => {
           await mutateInstallCerts();
           await mutate();
           // Refresh selected order to show updated submitted sites
           if (selectedOrder) {
-            const updatedOrder = orders?.find(o => o._id === selectedOrder._id);
+            const updatedOrder = orders?.find(
+              (o) => o._id === selectedOrder._id,
+            );
             if (updatedOrder) {
               setSelectedOrder(updatedOrder);
             }
@@ -1938,7 +2270,10 @@ function ComponentsOrders() {
       />
 
       {/* Rejection Remarks Dialog */}
-      <Dialog open={rejectionRemarksOpen} onOpenChange={setRejectionRemarksOpen}>
+      <Dialog
+        open={rejectionRemarksOpen}
+        onOpenChange={setRejectionRemarksOpen}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
@@ -1948,7 +2283,9 @@ function ComponentsOrders() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="bg-red-50 dark:bg-red-950/20 p-4 rounded-lg border border-red-200 dark:border-red-800">
-              <p className="text-sm text-muted-foreground mb-2">Brand's Rejection Reason:</p>
+              <p className="text-sm text-muted-foreground mb-2">
+                Brand's Rejection Reason:
+              </p>
               <p className="text-base font-medium whitespace-pre-wrap">
                 {selectedRejectionRemarks}
               </p>
@@ -1965,16 +2302,32 @@ function ComponentsOrders() {
       </Dialog>
 
       {/* PPT Confirmation Modal for Final Submit */}
-      <Dialog open={showFinalSubmitConfirm} onOpenChange={() => setShowFinalSubmitConfirm(false)}>
+      <Dialog
+        open={showFinalSubmitConfirm}
+        onOpenChange={() => setShowFinalSubmitConfirm(false)}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-xl">PPT Generation Confirmation</DialogTitle>
+            <DialogTitle className="text-xl">
+              PPT Generation Confirmation
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
               <div className="text-amber-600 dark:text-amber-400">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
                 </svg>
               </div>
               <div className="flex-1">
@@ -1991,20 +2344,36 @@ function ComponentsOrders() {
               <div className="flex items-start gap-2 text-sm">
                 <CircleCheckBig className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
                 <p>
-                  <strong>Yes:</strong> All {selectedCertForFinalSubmit ? getVendorVerifiedCount(selectedCertForFinalSubmit) : 0} vendor-verified sites will be marked as submitted and the installation process will be completed.
+                  <strong>Yes:</strong> All{" "}
+                  {selectedCertForFinalSubmit
+                    ? getVendorVerifiedCount(selectedCertForFinalSubmit)
+                    : 0}{" "}
+                  vendor-verified sites will be marked as submitted and the
+                  installation process will be completed.
                 </p>
               </div>
               <div className="flex items-start gap-2 text-sm">
                 <FileSearch className="h-5 w-5 text-orange-600 mt-0.5 shrink-0" />
                 <p>
-                  <strong>No:</strong> You will be prompted to generate the PPT first. This is your last chance to generate it before final submission.
+                  <strong>No:</strong> You will be prompted to generate the PPT
+                  first. This is your last chance to generate it before final
+                  submission.
                 </p>
               </div>
             </div>
 
             <div className="pt-4 border-t">
               <p className="text-xs text-muted-foreground text-center mb-4">
-                Ready to submit {selectedCertForFinalSubmit ? getVendorVerifiedCount(selectedCertForFinalSubmit) : 0} site{selectedCertForFinalSubmit && getVendorVerifiedCount(selectedCertForFinalSubmit) > 1 ? 's' : ''}?
+                Ready to submit{" "}
+                {selectedCertForFinalSubmit
+                  ? getVendorVerifiedCount(selectedCertForFinalSubmit)
+                  : 0}{" "}
+                site
+                {selectedCertForFinalSubmit &&
+                getVendorVerifiedCount(selectedCertForFinalSubmit) > 1
+                  ? "s"
+                  : ""}
+                ?
               </p>
               <div className="flex gap-3">
                 <Button

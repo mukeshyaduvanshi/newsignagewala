@@ -49,7 +49,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     isLoading: brandTeamLoading,
     isError: brandTeamError,
   } = useBrandUserRoles();
-  
+
   const {
     authorities: brandStoreAuthorities,
     isLoading: brandStoreLoading,
@@ -108,7 +108,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // Get sidebar configuration based on userType
   const sidebarConfig = React.useMemo(
     () => getSidebarConfig(user?.userType || null),
-    [user?.userType]
+    [user?.userType],
   );
 
   // Generate navigation data
@@ -118,15 +118,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const baseUrl = `/${user.userType}`;
 
     // Only pass authorities if they're successfully loaded and no errors
-    const safeTeamAuthorities = !teamError ? teamAuthorities : [];
-    const safeStoreAuthorities = !storeError ? storeAuthorities : [];
-    const safeWorkAuthorities = isManager && !workError ? workAuthorities : [];
+    const safeTeamAuthorities =
+      !teamError && Array.isArray(teamAuthorities) ? teamAuthorities : [];
+    const safeStoreAuthorities =
+      !storeError && Array.isArray(storeAuthorities) ? storeAuthorities : [];
+    const safeWorkAuthorities =
+      isManager && !workError && Array.isArray(workAuthorities)
+        ? workAuthorities
+        : [];
 
     return sidebarConfig.getNavigation(
       baseUrl,
       safeTeamAuthorities,
       safeStoreAuthorities,
-      safeWorkAuthorities
+      safeWorkAuthorities,
     );
   }, [
     sidebarConfig,
@@ -179,7 +184,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {item.items.map(
-                      (subItem: { title: string; url: string }, index: number) => {
+                      (
+                        subItem: { title: string; url: string },
+                        index: number,
+                      ) => {
                         const isActive = isActivePath(subItem.url);
                         // Use URL + index as key to ensure uniqueness
                         const uniqueKey = `${subItem.url}-${index}`;
@@ -200,7 +208,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                             </SidebarMenuButton>
                           </SidebarMenuItem>
                         );
-                      }
+                      },
                     )}
                   </SidebarMenu>
                 </SidebarGroupContent>

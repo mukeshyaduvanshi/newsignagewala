@@ -3,6 +3,7 @@ import { verifyAccessToken } from "@/lib/auth/jwt";
 import dbConnect from "@/lib/db/mongodb";
 import PurchaseAuthority from "@/lib/models/PurchaseAuthority";
 import User from "@/lib/models/User";
+import { invalidatePurchaseAuthorityCache } from "@/modules/brands/purchase-authority/purchase-authority.controller";
 
 export async function POST(request: NextRequest) {
   try {
@@ -65,6 +66,7 @@ export async function POST(request: NextRequest) {
       isActive: true,
     });
 
+    await invalidatePurchaseAuthorityCache(decoded.userId).catch(() => {});
     return NextResponse.json(
       {
         message: "Purchase authority created successfully",

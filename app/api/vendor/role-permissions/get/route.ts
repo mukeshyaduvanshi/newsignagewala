@@ -1,19 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import dbConnect from "@/lib/db/mongodb";
-import RolePermission from "@/lib/models/RolePermission";
 import { verifyAccessToken } from "@/lib/auth/jwt";
-import mongoose from "mongoose";
+import { getRolePermissionsController } from "@/modules/vendor/role-permissions/role-permissions.controller";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    await dbConnect();
-
-    // Extract and verify token
     const authHeader = req.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json(
         { error: "Unauthorized - No token provided" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -23,29 +20,21 @@ export async function GET(req: NextRequest) {
     if (!decoded) {
       return NextResponse.json(
         { error: "Unauthorized - Invalid token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
-    // Fetch work authorities created by this user or where user is parent
-    const userId = new mongoose.Types.ObjectId(decoded.userId);
-    const workAuthorities = await RolePermission.find({
-      $or: [{ createdId: userId }, { parentId: userId }],
-      isActive: true,
-    }).sort({ createdAt: 1 }); // Ascending order (oldest first)
+    const { data } = await getRolePermissionsController(decoded.userId);
 
     return NextResponse.json(
-      {
-        message: "Role permissions fetched successfully",
-        data: workAuthorities,
-      },
-      { status: 200 }
+      { message: "Role permissions fetched successfully", data },
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Error fetching role permissions:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

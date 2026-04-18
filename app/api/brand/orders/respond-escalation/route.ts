@@ -11,10 +11,7 @@ export async function POST(request: NextRequest) {
     // Get token from Authorization header
     const authHeader = request.headers.get("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { error: "No token provided" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "No token provided" }, { status: 401 });
     }
 
     const token = authHeader.substring(7);
@@ -23,44 +20,47 @@ export async function POST(request: NextRequest) {
     if (!decoded || decoded.userType !== "brand") {
       return NextResponse.json(
         { error: "Unauthorized - Brand access only" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     const brandId = decoded.userId;
     const body = await request.json();
-    const { 
-      orderId, 
-      siteChanges, 
-      additionalChargeChanges, 
-      oldTotal, 
+    const {
+      orderId,
+      siteChanges,
+      additionalChargeChanges,
+      oldTotal,
       newTotal,
-      reason 
+      reason,
     } = body;
 
     if (!orderId) {
       return NextResponse.json(
         { error: "Order ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Find the order and verify brand ownership
     await dbConnect();
-    const order = await Order.findById(orderId).populate("brandId", "companyName email phone");
+    const order = await Order.findById(orderId).populate(
+      "brandId",
+      "companyName email phone",
+    );
 
     if (!order) {
-      return NextResponse.json(
-        { error: "Order not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
     // Verify brand owns this order
-    if (order.brandId?._id?.toString() !== brandId && order.brandId?.toString() !== brandId) {
+    if (
+      order.brandId?._id?.toString() !== brandId &&
+      order.brandId?.toString() !== brandId
+    ) {
       return NextResponse.json(
         { error: "Unauthorized - This order is not assigned to you" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     if (order.orderStatus !== "escalation") {
       return NextResponse.json(
         { error: "Can only respond to escalated orders" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       newTotal: newTotal || 0,
       totalDifference: (newTotal || 0) - (oldTotal || 0),
       reason: reason || "Brand counter-offer",
-      status: "pending" as "pending"
+      status: "pending" as "pending",
     };
 
     // Initialize priceEscalation array if it doesn't exist
@@ -93,6 +93,11 @@ export async function POST(request: NextRequest) {
 
     // Add escalation to array
     order.priceEscalation.push(escalationRecord);
+
+    // Normalize legacy 'complete' status value
+    if ((order.orderStatus as string) === "complete") {
+      order.orderStatus = "completed";
+    }
 
     // Save the order
     await order.save();
@@ -111,7 +116,7 @@ export async function POST(request: NextRequest) {
     console.error("Error responding to escalation:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

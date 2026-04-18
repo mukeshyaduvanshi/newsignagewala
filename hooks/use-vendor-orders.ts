@@ -1,4 +1,5 @@
 import useSWR from "swr";
+import { useEffect, useRef } from "react";
 import { useAuth } from "@/lib/context/AuthContext";
 
 export interface OrderSite {
@@ -118,6 +119,7 @@ const fetcher = async (url: string, token: string) => {
 
 export function useVendorOrders() {
   const { accessToken } = useAuth();
+  const esRef = useRef<EventSource | null>(null);
 
   const url = `/api/vendor/orders`;
 
@@ -131,6 +133,27 @@ export function useVendorOrders() {
       dedupingInterval: 2000,
     },
   );
+
+  useEffect(() => {
+    if (!accessToken) return;
+
+    const sseUrl = `/api/vendor/orders/sse?token=${encodeURIComponent(accessToken)}`;
+    const es = new EventSource(sseUrl);
+    esRef.current = es;
+
+    es.addEventListener("update", () => {
+      mutate();
+    });
+
+    es.onerror = () => {
+      es.close();
+    };
+
+    return () => {
+      es.close();
+      esRef.current = null;
+    };
+  }, [accessToken, mutate]);
 
   return {
     orders: data?.orders || [],

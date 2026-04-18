@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     if (!accessToken) {
       return NextResponse.json(
         { error: "Unauthorized - No token provided" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -25,20 +25,19 @@ export async function POST(req: NextRequest) {
     if (!decoded) {
       return NextResponse.json(
         { error: "Unauthorized - Invalid token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const userId = decoded.userId;
 
-    // Verify user is brand
+    // Verify user is brand or vendor
     const brand = await User.findById(userId);
 
-
-    if (!brand || brand.userType !== "brand") {
+    if (!brand || (brand.userType !== "brand" && brand.userType !== "vendor")) {
       return NextResponse.json(
-        { error: "Access denied - Brand only" },
-        { status: 403 }
+        { error: "Access denied - Brand or Vendor only" },
+        { status: 403 },
       );
     }
 
@@ -48,14 +47,14 @@ export async function POST(req: NextRequest) {
     if (!members || !Array.isArray(members) || members.length === 0) {
       return NextResponse.json(
         { error: "No members data provided" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (members.length > 500) {
       return NextResponse.json(
         { error: "Maximum 500 members allowed per upload" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -154,13 +153,13 @@ export async function POST(req: NextRequest) {
           errors: results.errors,
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Error in bulk member upload:", error);
     return NextResponse.json(
       { error: "Internal server error", details: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

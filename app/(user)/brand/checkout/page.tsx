@@ -53,6 +53,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/context/AuthContext";
+import { useBrandCheckoutInit } from "@/lib/hooks/brand/useBrandCheckoutInit";
 import { priceCalculatorNumber } from "@/lib/utils/priceCalculator";
 import { OrderInformation } from "@/components/(user)/brand/checkout/order-information";
 import { OrderSites } from "@/components/(user)/brand/checkout/order-sites";
@@ -92,6 +93,22 @@ export default function CheckoutPage() {
   const [selectedCreativeManagerId, setSelectedCreativeManagerId] =
     React.useState<string>("");
 
+  // BFF hook — fetches purchase authorities + creative managers in one request
+  const {
+    purchaseAuthorities: fetchedAuthorities,
+    creativeManagers: fetchedManagers,
+  } = useBrandCheckoutInit();
+
+  // Sync BFF data into local state (preserves backward compatibility with existing handlers)
+  React.useEffect(() => {
+    if (fetchedAuthorities.length > 0)
+      setPurchaseAuthorities(fetchedAuthorities);
+  }, [fetchedAuthorities]);
+
+  React.useEffect(() => {
+    if (fetchedManagers.length > 0) setCreativeManagers(fetchedManagers);
+  }, [fetchedManagers]);
+
   // Filter out hidden items for display - use useMemo to prevent infinite loops
   const visibleCartItems = React.useMemo(
     () =>
@@ -111,61 +128,6 @@ export default function CheckoutPage() {
     new Date(),
   );
   const [deadlineDate, setDeadlineDate] = React.useState<Date | undefined>();
-
-  // Fetch purchase authorities on mount
-  React.useEffect(() => {
-    const fetchPurchaseAuthorities = async () => {
-      if (!accessToken) return;
-
-      try {
-        const response = await fetch("/api/brand/purchase-authority/get", {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setPurchaseAuthorities(data.authorities || []);
-        }
-      } catch (error) {
-        console.error("Error fetching purchase authorities:", error);
-      }
-    };
-
-    fetchPurchaseAuthorities();
-  }, [accessToken]);
-
-  // Fetch creative managers on mount
-  React.useEffect(() => {
-    const fetchCreativeManagers = async () => {
-      if (!accessToken) return;
-
-      try {
-        const response = await fetch(
-          "/api/teams/members?uniqueKey=creativeManagers&page=1&limit=100&status=active",
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          },
-        );
-
-        if (response.ok) {
-          const result = await response.json();
-          console.log("Creative managers response:", result);
-          // API returns data in 'data' field, not 'teamMembers'
-          setCreativeManagers(result.data || []);
-        } else {
-          console.error("Failed to fetch creative managers:", response.status);
-        }
-      } catch (error) {
-        console.error("Error fetching creative managers:", error);
-      }
-    };
-
-    fetchCreativeManagers();
-  }, [accessToken]);
 
   // Generate tender number when type changes to tender
   React.useEffect(() => {

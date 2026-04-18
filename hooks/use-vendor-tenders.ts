@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/context/AuthContext";
-import { fetchWithRetry } from '@/lib/utils/api-retry';
+import { fetchWithRetry } from "@/lib/utils/api-retry";
 
 export interface VendorBidding {
   vendorId: string;
@@ -77,7 +77,7 @@ export function useVendorTenders() {
   const fetchTenders = async () => {
     try {
       setIsLoading(true);
-      
+
       if (!accessToken) {
         console.log("No access token available");
         setIsLoading(false);
@@ -111,10 +111,14 @@ export function useVendorTenders() {
   };
 
   const submitBid = async (
-    tenderId: string, 
+    tenderId: string,
     amount?: number,
-    customRates?: Array<{siteId: string, elementName: string, vendorRate: number}>,
-    vendorCharges?: Array<{label: string, amount: string}>
+    customRates?: Array<{
+      siteId: string;
+      elementName: string;
+      vendorRate: number;
+    }>,
+    vendorCharges?: Array<{ label: string; amount: string }>,
   ) => {
     try {
       if (!accessToken) {
@@ -182,9 +186,24 @@ export function useVendorTenders() {
   };
 
   useEffect(() => {
-    if (accessToken) {
+    if (!accessToken) return;
+
+    fetchTenders();
+
+    const sseUrl = `/api/vendor/tenders/sse?token=${encodeURIComponent(accessToken)}`;
+    const es = new EventSource(sseUrl);
+
+    es.addEventListener("update", () => {
       fetchTenders();
-    }
+    });
+
+    es.onerror = () => {
+      es.close();
+    };
+
+    return () => {
+      es.close();
+    };
   }, [accessToken]);
 
   return {

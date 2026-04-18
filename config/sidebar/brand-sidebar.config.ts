@@ -1,44 +1,65 @@
-import { Users, Store, ShoppingCart, Briefcase, CirclePercent, FileText } from "lucide-react"
-import { SidebarNavItem, SidebarConfig } from "@/types/sidebar.types"
+import {
+  Users,
+  Store,
+  ShoppingCart,
+  Briefcase,
+  CirclePercent,
+  FileText,
+} from "lucide-react";
+import { SidebarNavItem, SidebarConfig } from "@/types/sidebar.types";
 
 // Brand Sidebar Configuration
 export const brandSidebarConfig: SidebarConfig = {
   getNavigation: (baseUrl, teamAuthorities = [], storeAuthorities = []) => {
     // Filter and sort team authorities (only valid uniqueKey)
-    const sortedTeamAuthorities = [...teamAuthorities]
-      .filter(auth => auth.uniqueKey && auth.uniqueKey !== 'undefined')
-      .sort((a, b) => 
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    const sortedTeamAuthorities = [
+      ...(Array.isArray(teamAuthorities) ? teamAuthorities : []),
+    ]
+      .filter((auth) => auth.uniqueKey && auth.uniqueKey !== "undefined")
+      .sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       );
-    
+
     // Filter and sort store authorities (only valid items)
-    const sortedStoreAuthorities = [...storeAuthorities]
-      .filter(authority => authority.selectedOptions && authority.selectedOptions.length > 0)
-      .sort((a, b) => 
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    const sortedStoreAuthorities = [
+      ...(Array.isArray(storeAuthorities) ? storeAuthorities : []),
+    ]
+      .filter(
+        (authority) =>
+          authority.selectedOptions && authority.selectedOptions.length > 0,
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       );
-    
+
     // Generate store items from store authorities
-    const storeItems = sortedStoreAuthorities.flatMap(authority => {
-      const uniqueKeys = authority.uniqueKeys || authority.selectedOptions.map((option: string) => 
-        option
-          .trim()
-          .split(/\s+/)
-          .map((word: string, index: number) => {
-            if (index === 0) {
-              return word.toLowerCase();
-            }
-            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-          })
-          .join('')
-      );
-      
+    const storeItems = sortedStoreAuthorities.flatMap((authority) => {
+      const uniqueKeys =
+        authority.uniqueKeys ||
+        authority.selectedOptions.map((option: string) =>
+          option
+            .trim()
+            .split(/\s+/)
+            .map((word: string, index: number) => {
+              if (index === 0) {
+                return word.toLowerCase();
+              }
+              return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+            })
+            .join(""),
+        );
+
       return authority.selectedOptions
         .map((option: string, index: number) => ({
           title: option,
           url: `${baseUrl}/stores/${uniqueKeys[index]}`,
         }))
-        .filter((item: { title: string; url: string }) => item.url && !item.url.includes('undefined'));
+        .filter(
+          (item: { title: string; url: string }) =>
+            item.url && !item.url.includes("undefined"),
+        );
     });
 
     return [
@@ -46,7 +67,7 @@ export const brandSidebarConfig: SidebarConfig = {
         title: "Teams",
         icon: Users,
         url: "#",
-        items: sortedTeamAuthorities.map(auth => ({
+        items: sortedTeamAuthorities.map((auth) => ({
           title: auth.labelName,
           url: `${baseUrl}/teams/${auth.uniqueKey}`,
         })),
@@ -155,5 +176,5 @@ export const brandSidebarConfig: SidebarConfig = {
         ],
       },
     ];
-  }
+  },
 };

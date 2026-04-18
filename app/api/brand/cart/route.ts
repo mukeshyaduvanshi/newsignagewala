@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db/mongodb";
 import Cart from "@/lib/models/cart.model";
 import { verifyAccessToken } from "@/lib/auth/jwt";
+import {
+  getCartController,
+  invalidateCartCache,
+} from "@/modules/brands/cart/cart.controller";
 
 // GET - Fetch brand's cart
 export async function GET(req: NextRequest) {
@@ -17,25 +21,15 @@ export async function GET(req: NextRequest) {
     }
 
     const decoded = verifyAccessToken(accessToken);
-    if (!decoded) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
-
-    if (decoded.userType !== "brand") {
+    if (!decoded || decoded.userType !== "brand") {
       return NextResponse.json(
         { error: "Only brands can access cart" },
         { status: 403 },
       );
     }
 
-    await connectDB();
-
-    const cart = await Cart.findOne({ brandId: decoded.userId });
-
-    return NextResponse.json({
-      success: true,
-      items: cart?.items || [],
-    });
+    const { data: items } = await getCartController(decoded.userId);
+    return NextResponse.json({ success: true, items });
   } catch (error: any) {
     console.error("Error fetching cart:", error);
     return NextResponse.json(
@@ -141,6 +135,7 @@ export async function POST(req: NextRequest) {
     }
 
     await cart.save();
+    await invalidateCartCache(decoded.userId);
 
     return NextResponse.json({
       success: true,
@@ -209,6 +204,7 @@ export async function PUT(req: NextRequest) {
 
     cart.items[itemIndex].quantity = quantity;
     await cart.save();
+    await invalidateCartCache(decoded.userId);
 
     return NextResponse.json({
       success: true,
@@ -265,16 +261,19 @@ export async function DELETE(req: NextRequest) {
     }
 
     const initialLength = cart.items.length;
-    cart.items = cart.items.filter((item: any) => item.siteId.toString() !== siteId);
-    
+    cart.items = cart.items.filter(
+      (item: any) => item.siteId.toString() !== siteId,
+    );
+
     if (cart.items.length === initialLength) {
       return NextResponse.json(
         { error: "Item not found in cart" },
-        { status: 404 }
+        { status: 404 },
       );
     }
-    
+
     await cart.save();
+    await invalidateCartCache(decoded.userId);
 
     return NextResponse.json({
       success: true,

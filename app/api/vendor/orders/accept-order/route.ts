@@ -3,6 +3,10 @@ import { verifyAccessToken } from "@/lib/auth/jwt";
 import dbConnect from "@/lib/db/mongodb";
 import Order from "@/lib/models/Order";
 import mongoose from "mongoose";
+import {
+  invalidateOrdersCache,
+  publishOrdersUpdate,
+} from "@/modules/vendor/orders/orders.controller";
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,7 +16,7 @@ export async function POST(request: NextRequest) {
     if (!token) {
       return NextResponse.json(
         { error: "Authorization token required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -20,7 +24,7 @@ export async function POST(request: NextRequest) {
     if (!decoded || decoded.userType !== "vendor") {
       return NextResponse.json(
         { error: "Unauthorized access" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -32,7 +36,7 @@ export async function POST(request: NextRequest) {
     if (!orderId) {
       return NextResponse.json(
         { error: "Order ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -45,21 +49,25 @@ export async function POST(request: NextRequest) {
     if (!order) {
       return NextResponse.json(
         { error: "Order not found or you don't have permission to accept it" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
-    // Check if order is in new status
-    if (order.orderStatus !== "new") {
+    // Check if order can be accepted
+    const acceptableStatuses = ["new", "creativeAdapted", "creativeaddepted"];
+    if (!acceptableStatuses.includes(order.orderStatus)) {
       return NextResponse.json(
         { error: `Cannot accept order with status: ${order.orderStatus}` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Update order status to accepted
     order.orderStatus = "accepted";
     await order.save();
+
+    await invalidateOrdersCache(decoded.userId);
+    await publishOrdersUpdate(decoded.userId);
 
     return NextResponse.json(
       {
@@ -70,13 +78,13 @@ export async function POST(request: NextRequest) {
           orderStatus: order.orderStatus,
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Error accepting order:", error);
     return NextResponse.json(
       { error: "Failed to accept order" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
