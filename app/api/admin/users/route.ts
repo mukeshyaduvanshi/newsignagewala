@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyAccessToken } from "@/lib/auth/jwt";
 import dbConnect from "@/lib/db/mongodb";
 import User from "@/lib/models/User";
+import { apiCache } from "@/lib/cache/with-cache";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,7 +20,7 @@ export async function GET(req: NextRequest) {
     if (!decoded || decoded.userType !== "admin") {
       return NextResponse.json(
         { error: "Unauthorized - Admin only" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -60,47 +63,54 @@ export async function GET(req: NextRequest) {
     // Calculate skip for pagination
     const skip = (page - 1) * limit;
 
-    // Fetch users with pagination
-    const users = await User.find(filter)
-      .select("name email phone userType adminApproval createdAt")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    // Fetch users + total count in parallel, with short Redis cache
+    const cacheKey = `admin:users:v1:${approvalStatus}:${userType || "all"}:${page}:${limit}:${search}`;
+    const result = await apiCache(
+      cacheKey,
+      30, // 30s TTL — user list changes infrequently
+      async () => {
+        const [users, total] = await Promise.all([
+          User.find(filter)
+            .select(
+              "name email phone userType adminApproval createdAt businessName gstNumber",
+            )
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+          User.countDocuments(filter),
+        ]);
 
-    // Get total count for pagination
-    const total = await User.countDocuments(filter);
+        const transformedUsers = users.map((user: any) => ({
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          userType: user.userType,
+          adminApproval: user.adminApproval,
+          createdAt: user.createdAt,
+          businessName: user.businessName,
+          gstNumber: user.gstNumber,
+        }));
 
-    // Transform users data
-    const transformedUsers = users.map((user: any) => ({
-      id: user._id.toString(),
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      userType: user.userType,
-      adminApproval: user.adminApproval,
-      createdAt: user.createdAt,
-      businessName: user.businessName,
-      gstNumber: user.gstNumber,
-    }));
-
-    return NextResponse.json(
-      {
-        users: transformedUsers,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-        },
+        return {
+          users: transformedUsers,
+          pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+          },
+        };
       },
-      { status: 200 }
     );
+
+    return NextResponse.json(result, { status: 200 });
   } catch (error: any) {
     console.error("Error fetching users:", error);
     return NextResponse.json(
       { error: error.message || "Failed to fetch users" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

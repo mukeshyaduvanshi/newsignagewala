@@ -4,6 +4,8 @@ import User from "@/lib/models/User";
 import connectDB from "@/lib/db/mongodb";
 import { getStoresController } from "@/modules/brands/stores/stores.controller";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     await connectDB();

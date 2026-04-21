@@ -5,6 +5,9 @@ import User from "@/lib/models/User";
 import Store from "@/lib/models/Store";
 import Site from "@/lib/models/Site";
 import Racee from "@/lib/models/Racee";
+import { apiCache } from "@/lib/cache/with-cache";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
@@ -41,56 +44,55 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Get user counts using aggregation for efficiency
-    const userStats = await User.aggregate([
-      {
-        $group: {
-          _id: null,
-          total: { $sum: 1 },
-          brand: { $sum: { $cond: [{ $eq: ["$userType", "brand"] }, 1, 0] } },
-          vendor: { $sum: { $cond: [{ $eq: ["$userType", "vendor"] }, 1, 0] } },
-          admin: { $sum: { $cond: [{ $eq: ["$userType", "admin"] }, 1, 0] } },
-          manager: {
-            $sum: { $cond: [{ $eq: ["$userType", "manager"] }, 1, 0] },
+    // Fetch all stats via Redis cache (60s TTL — dashboard stats don't need to be real-time)
+    const statsData = await apiCache("admin:stats:v1", 60, async () => {
+      const [userStats, storeCount, siteCount, raceeCount] = await Promise.all([
+        User.aggregate([
+          {
+            $group: {
+              _id: null,
+              total: { $sum: 1 },
+              brand: {
+                $sum: { $cond: [{ $eq: ["$userType", "brand"] }, 1, 0] },
+              },
+              vendor: {
+                $sum: { $cond: [{ $eq: ["$userType", "vendor"] }, 1, 0] },
+              },
+              admin: {
+                $sum: { $cond: [{ $eq: ["$userType", "admin"] }, 1, 0] },
+              },
+              manager: {
+                $sum: { $cond: [{ $eq: ["$userType", "manager"] }, 1, 0] },
+              },
+            },
           },
-        },
-      },
-    ]);
+        ]),
+        Store.countDocuments({}),
+        Site.countDocuments({}),
+        Racee.countDocuments({ status: "pending" }),
+      ]);
 
-    const stats = userStats[0] || {
-      total: 0,
-      brand: 0,
-      vendor: 0,
-      admin: 0,
-      manager: 0,
-    };
-    const allUsersCount = stats.total - stats.admin;
-    const brandCount = stats.brand;
-    const vendorCount = stats.vendor;
-    const adminCount = stats.admin;
-    const managerCount = stats.manager;
-
-    // Get counts for other collections in parallel
-    const [storeCount, siteCount, raceeCount] = await Promise.all([
-      Store.countDocuments({}),
-      Site.countDocuments({}),
-      Racee.countDocuments({ status: "pending" }),
-    ]);
+      const s = userStats[0] || {
+        total: 0,
+        brand: 0,
+        vendor: 0,
+        admin: 0,
+        manager: 0,
+      };
+      return {
+        allUsersCount: s.total - s.admin,
+        brandCount: s.brand,
+        vendorCount: s.vendor,
+        adminCount: s.admin,
+        managerCount: s.manager,
+        storeCount,
+        siteCount,
+        raceeCount,
+      };
+    });
 
     return NextResponse.json(
-      {
-        message: "User count fetched successfully",
-        data: {
-          allUsersCount,
-          brandCount,
-          vendorCount,
-          adminCount,
-          managerCount,
-          storeCount,
-          siteCount,
-          raceeCount,
-        },
-      },
+      { message: "User count fetched successfully", data: statsData },
       { status: 200 },
     );
   } catch (error: any) {

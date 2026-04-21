@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireManagerAuth } from "@/lib/auth/manager-auth";
 import { getStoresController } from "@/modules/manager/stores/stores.controller";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     const managerAuth = await requireManagerAuth(req);

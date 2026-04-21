@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireManagerAuth } from "@/lib/auth/manager-auth";
 import { getAuthoritiesController } from "@/modules/manager/teams/teams.controller";
 
+export const dynamic = "force-dynamic";
+
 // GET - fetch team authorities/roles from the manager's parent brand
 export async function GET(request: NextRequest) {
   try {
