@@ -4,6 +4,7 @@ import RolePermission from "@/lib/models/RolePermission";
 import { verifyAccessToken } from "@/lib/auth/jwt";
 import mongoose from "mongoose";
 import { invalidateRolePermissionsCache } from "@/modules/brands/role-permissions/role-permissions.controller";
+import { invalidateManagerSidebarCacheByParent } from "@/modules/manager/cache-invalidation";
 
 export async function POST(req: NextRequest) {
   try {
@@ -73,6 +74,7 @@ export async function POST(req: NextRequest) {
     });
 
     await invalidateRolePermissionsCache(decoded.userId).catch(() => {});
+    await invalidateManagerSidebarCacheByParent(decoded.userId).catch(() => {});
     return NextResponse.json(
       {
         message: "Role permission created successfully",

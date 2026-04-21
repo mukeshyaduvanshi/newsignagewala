@@ -6,6 +6,10 @@ import { verifyAccessToken } from "@/lib/auth/jwt";
 import bcrypt from "bcryptjs";
 import { sendManagerWelcomeEmail } from "@/lib/email/templates";
 import BusinessDetails from "@/lib/models/BusinessDetails";
+import {
+  checkRateLimit,
+  rateLimitExceededResponse,
+} from "@/lib/utils/rate-limit";
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,6 +31,14 @@ export async function GET(request: NextRequest) {
         { status: 401 },
       );
     }
+
+    const rl = await checkRateLimit(request, {
+      namespace: "teams:members:get",
+      key: decoded.userId,
+      maxRequests: 120,
+      windowMs: 60 * 1000,
+    });
+    if (!rl.allowed) return rateLimitExceededResponse(rl);
 
     await connectDB();
 
@@ -163,6 +175,14 @@ export async function POST(request: NextRequest) {
         { status: 401 },
       );
     }
+
+    const rl = await checkRateLimit(request, {
+      namespace: "teams:members:post",
+      key: decoded.userId,
+      maxRequests: 30,
+      windowMs: 60 * 1000,
+    });
+    if (!rl.allowed) return rateLimitExceededResponse(rl);
 
     await connectDB();
 

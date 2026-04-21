@@ -3,6 +3,10 @@ import { verifyAccessToken } from "@/lib/auth/jwt";
 import User from "@/lib/models/User";
 import TeamMember from "@/lib/models/TeamMember";
 import connectDB from "@/lib/db/mongodb";
+import {
+  checkRateLimit,
+  rateLimitExceededResponse,
+} from "@/lib/utils/rate-limit";
 
 // GET - Fetch unique manager types for the brand
 export async function GET(req: NextRequest) {
@@ -15,7 +19,7 @@ export async function GET(req: NextRequest) {
     if (!accessToken) {
       return NextResponse.json(
         { error: "Unauthorized - No token provided" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -23,9 +27,17 @@ export async function GET(req: NextRequest) {
     if (!decoded) {
       return NextResponse.json(
         { error: "Unauthorized - Invalid token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
+
+    const rl = await checkRateLimit(req, {
+      namespace: "teams:manager-types:get",
+      key: decoded.userId,
+      maxRequests: 90,
+      windowMs: 60 * 1000,
+    });
+    if (!rl.allowed) return rateLimitExceededResponse(rl);
 
     const userId = decoded.userId;
 
@@ -34,7 +46,7 @@ export async function GET(req: NextRequest) {
     if (!brand || brand.userType !== "brand") {
       return NextResponse.json(
         { error: "Access denied - Brand only" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -51,13 +63,13 @@ export async function GET(req: NextRequest) {
           managerTypes: managerTypes.sort(),
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Error fetching manager types:", error);
     return NextResponse.json(
       { error: "Internal server error", details: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

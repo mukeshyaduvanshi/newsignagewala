@@ -4,6 +4,10 @@ import User from "@/lib/models/User";
 import StoreAssignManager from "@/lib/models/StoreAssignManager";
 import TeamMember from "@/lib/models/TeamMember";
 import connectDB from "@/lib/db/mongodb";
+import {
+  checkRateLimit,
+  rateLimitExceededResponse,
+} from "@/lib/utils/rate-limit";
 
 // GET - Fetch store manager assignments
 export async function GET(req: NextRequest) {
@@ -16,7 +20,7 @@ export async function GET(req: NextRequest) {
     if (!accessToken) {
       return NextResponse.json(
         { error: "Unauthorized - No token provided" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -24,9 +28,17 @@ export async function GET(req: NextRequest) {
     if (!decoded) {
       return NextResponse.json(
         { error: "Unauthorized - Invalid token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
+
+    const rl = await checkRateLimit(req, {
+      namespace: "brand:stores:assign-manager:get",
+      key: decoded.userId,
+      maxRequests: 120,
+      windowMs: 60 * 1000,
+    });
+    if (!rl.allowed) return rateLimitExceededResponse(rl);
 
     const userId = decoded.userId;
 
@@ -35,7 +47,7 @@ export async function GET(req: NextRequest) {
     if (!brand || brand.userType !== "brand") {
       return NextResponse.json(
         { error: "Access denied - Brand only" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -68,7 +80,7 @@ export async function GET(req: NextRequest) {
 
       // Filter out null references
       const validUsedAssignments = usedAssignments.filter(
-        (assignment: any) => assignment.storeId && assignment.managerUserId
+        (assignment: any) => assignment.storeId && assignment.managerUserId,
       );
 
       return NextResponse.json({
@@ -128,7 +140,7 @@ export async function GET(req: NextRequest) {
 
       // Get manager's User._id from populated managerUserId
       const mgrUserId = String(
-        (assignment.managerUserId as any)?._id || assignment.managerUserId
+        (assignment.managerUserId as any)?._id || assignment.managerUserId,
       );
 
       // Lookup correct TeamMember for THIS brand using manager's User._id
@@ -156,7 +168,8 @@ export async function GET(req: NextRequest) {
           uniqueKey: correctTeamMember.uniqueKey,
         },
         managerUserId: {
-          _id: (assignment.managerUserId as any)?._id || assignment.managerUserId,
+          _id:
+            (assignment.managerUserId as any)?._id || assignment.managerUserId,
           name: correctTeamMember.name,
           email: correctTeamMember.email,
         },
@@ -166,7 +179,7 @@ export async function GET(req: NextRequest) {
     // Log orphaned data for debugging
     if (orphanedCount > 0) {
       console.warn(
-        `[assign-manager GET] Found ${orphanedCount} orphaned assignments for brand ${userId}`
+        `[assign-manager GET] Found ${orphanedCount} orphaned assignments for brand ${userId}`,
       );
     }
 
@@ -175,13 +188,13 @@ export async function GET(req: NextRequest) {
         success: true,
         data: validAssignments,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Error fetching store assignments:", error);
     return NextResponse.json(
       { error: "Internal server error", details: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -197,7 +210,7 @@ export async function POST(req: NextRequest) {
     if (!accessToken) {
       return NextResponse.json(
         { error: "Unauthorized - No token provided" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -205,9 +218,17 @@ export async function POST(req: NextRequest) {
     if (!decoded) {
       return NextResponse.json(
         { error: "Unauthorized - Invalid token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
+
+    const rl = await checkRateLimit(req, {
+      namespace: "brand:stores:assign-manager:post",
+      key: decoded.userId,
+      maxRequests: 40,
+      windowMs: 60 * 1000,
+    });
+    if (!rl.allowed) return rateLimitExceededResponse(rl);
 
     const userId = decoded.userId;
 
@@ -216,17 +237,21 @@ export async function POST(req: NextRequest) {
     if (!brand || brand.userType !== "brand") {
       return NextResponse.json(
         { error: "Access denied - Brand only" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     const body = await req.json();
     const { assignments } = body;
 
-    if (!assignments || !Array.isArray(assignments) || assignments.length === 0) {
+    if (
+      !assignments ||
+      !Array.isArray(assignments) ||
+      assignments.length === 0
+    ) {
       return NextResponse.json(
         { error: "No assignments data provided" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -241,7 +266,11 @@ export async function POST(req: NextRequest) {
 
       try {
         // Validate required fields
-        if (!assignment.storeId || !assignment.teamId || !assignment.managerUserId) {
+        if (
+          !assignment.storeId ||
+          !assignment.teamId ||
+          !assignment.managerUserId
+        ) {
           results.errors.push({
             index: i + 1,
             error: "Missing required fields (storeId, teamId, managerUserId)",
@@ -325,13 +354,13 @@ export async function POST(req: NextRequest) {
           errors: results.errors,
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Error in bulk assignment:", error);
     return NextResponse.json(
       { error: "Internal server error", details: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -347,7 +376,7 @@ export async function PUT(req: NextRequest) {
     if (!accessToken) {
       return NextResponse.json(
         { error: "Unauthorized - No token provided" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -355,9 +384,17 @@ export async function PUT(req: NextRequest) {
     if (!decoded) {
       return NextResponse.json(
         { error: "Unauthorized - Invalid token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
+
+    const rl = await checkRateLimit(req, {
+      namespace: "brand:stores:assign-manager:put",
+      key: decoded.userId,
+      maxRequests: 60,
+      windowMs: 60 * 1000,
+    });
+    if (!rl.allowed) return rateLimitExceededResponse(rl);
 
     const userId = decoded.userId;
 
@@ -366,7 +403,7 @@ export async function PUT(req: NextRequest) {
     if (!brand || brand.userType !== "brand") {
       return NextResponse.json(
         { error: "Access denied - Brand only" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -376,7 +413,7 @@ export async function PUT(req: NextRequest) {
     if (!assignmentId) {
       return NextResponse.json(
         { error: "Assignment ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -388,7 +425,7 @@ export async function PUT(req: NextRequest) {
     if (!assignment) {
       return NextResponse.json(
         { error: "Assignment not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -404,13 +441,13 @@ export async function PUT(req: NextRequest) {
         message: "Assignment updated successfully",
         data: assignment,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Error updating assignment:", error);
     return NextResponse.json(
       { error: "Internal server error", details: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -426,7 +463,7 @@ export async function DELETE(req: NextRequest) {
     if (!accessToken) {
       return NextResponse.json(
         { error: "Unauthorized - No token provided" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -434,9 +471,17 @@ export async function DELETE(req: NextRequest) {
     if (!decoded) {
       return NextResponse.json(
         { error: "Unauthorized - Invalid token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
+
+    const rl = await checkRateLimit(req, {
+      namespace: "brand:stores:assign-manager:delete",
+      key: decoded.userId,
+      maxRequests: 60,
+      windowMs: 60 * 1000,
+    });
+    if (!rl.allowed) return rateLimitExceededResponse(rl);
 
     const userId = decoded.userId;
 
@@ -445,7 +490,7 @@ export async function DELETE(req: NextRequest) {
     if (!brand || brand.userType !== "brand") {
       return NextResponse.json(
         { error: "Access denied - Brand only" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -455,7 +500,7 @@ export async function DELETE(req: NextRequest) {
     if (!assignmentId) {
       return NextResponse.json(
         { error: "Assignment ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -468,14 +513,16 @@ export async function DELETE(req: NextRequest) {
     if (!assignment) {
       return NextResponse.json(
         { error: "Assignment not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     if (assignment.isStoreUsed) {
       return NextResponse.json(
-        { error: "Cannot remove it's currently in use as a working for a store" },
-        { status: 400 }
+        {
+          error: "Cannot remove it's currently in use as a working for a store",
+        },
+        { status: 400 },
       );
     }
 
@@ -486,13 +533,13 @@ export async function DELETE(req: NextRequest) {
         success: true,
         message: "Assignment deleted successfully",
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Error deleting assignment:", error);
     return NextResponse.json(
       { error: "Internal server error", details: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

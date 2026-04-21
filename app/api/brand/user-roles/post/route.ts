@@ -3,6 +3,7 @@ import connectDB from "@/lib/db/mongodb";
 import UserRole from "@/lib/models/UserRole";
 import { verifyAccessToken, extractBearerToken } from "@/lib/auth/jwt";
 import { invalidateUserRolesCache } from "@/modules/brands/user-roles/user-roles.controller";
+import { invalidateManagerSidebarCacheByParent } from "@/modules/manager/cache-invalidation";
 
 // Function to convert label name to camelCase
 function generateUniqueKey(labelName: string): string {
@@ -84,6 +85,7 @@ export async function POST(req: NextRequest) {
 
     // 🔥 INVALIDATE CACHE - Force refetch on next request
     await invalidateUserRolesCache(userId).catch(() => {});
+    await invalidateManagerSidebarCacheByParent(userId).catch(() => {});
 
     return NextResponse.json(
       {

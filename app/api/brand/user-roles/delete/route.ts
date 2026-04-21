@@ -3,6 +3,7 @@ import connectDB from "@/lib/db/mongodb";
 import UserRole from "@/lib/models/UserRole";
 import { verifyAccessToken, extractBearerToken } from "@/lib/auth/jwt";
 import { invalidateUserRolesCache } from "@/modules/brands/user-roles/user-roles.controller";
+import { invalidateManagerSidebarCacheByParent } from "@/modules/manager/cache-invalidation";
 
 export async function DELETE(req: NextRequest) {
   try {
@@ -80,6 +81,7 @@ export async function DELETE(req: NextRequest) {
 
     // 🔥 INVALIDATE CACHE - Force refetch on next request
     await invalidateUserRolesCache(decoded.userId).catch(() => {});
+    await invalidateManagerSidebarCacheByParent(decoded.userId).catch(() => {});
 
     return NextResponse.json(
       {
