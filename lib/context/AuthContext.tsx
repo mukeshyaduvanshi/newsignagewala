@@ -7,6 +7,7 @@ import React, {
   useState,
   ReactNode,
 } from "react";
+import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -96,9 +97,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
-      // Set auth state
-      setAccessToken(data.accessToken);
-      setUser(data.user);
+      // Set auth state — flushSync ensures state is committed BEFORE router.push()
+      // Without this, React 18 batching causes user=null on first render of the new page
+      flushSync(() => {
+        setAccessToken(data.accessToken);
+        setUser(data.user);
+      });
 
       // Dispatch to Redux store
       const authPayload: any = {
@@ -344,33 +348,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const logout = async (): Promise<void> => {
-    try {
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include", // Include cookies
-      });
-    } catch (error) {
-      console.error("Logout error:", error);
-    } finally {
-      // Always clear local state regardless of API call success
-      setUser(null);
-      setAccessToken(null);
+    // Fire-and-forget: server cleanup (token invalidation, Redis del) runs in background
+    // Do NOT await — user should be logged out instantly without waiting for DB/Redis
+    fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    }).catch(() => {}); // silently ignore network errors
 
-      // Clear ALL Redux state to prevent data leakage between users
-      dispatch({ type: RESET_STORE }); // Global store reset (safest approach)
-      dispatch(clearAuth()); // Clear authentication data
-      dispatch(clearCart()); // Clear cart items
+    // Immediately clear all local state
+    setUser(null);
+    setAccessToken(null);
 
-      // Clear all localStorage data
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("selectedBrandId");
-        // Clear any other user-specific localStorage items
-        localStorage.removeItem("cartTimestamp");
-      }
+    // Clear ALL Redux state to prevent data leakage between users
+    dispatch({ type: RESET_STORE }); // Global store reset (safest approach)
+    dispatch(clearAuth()); // Clear authentication data
+    dispatch(clearCart()); // Clear cart items
 
-      toast.success("Logged out successfully");
-      router.push("/auth/login");
+    // Clear all localStorage data
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("selectedBrandId");
+      localStorage.removeItem("cartTimestamp");
     }
+
+    toast.success("Logged out successfully");
+    router.push("/auth/login");
   };
 
   const refreshToken = async (): Promise<boolean> => {
@@ -438,15 +439,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
           email: data.user.email,
           phone: data.user.phone,
           userType: data.user.userType,
-          // isEmailVerified: data.user.isEmailVerified,
-          // isPhoneVerified: data.user.isPhoneVerified,
-          // isBusinessInformation: data.user.isBusinessInformation,
-          // isBusinessKyc: data.user.isBusinessKyc,
-          // adminApproval: data.user.adminApproval,
-          // createdAt: data.user.createdAt,
-          // updatedAt: data.user.updatedAt,
+          isEmailVerified: data.user.isEmailVerified,
+          isPhoneVerified: data.user.isPhoneVerified,
+          isBusinessInformation: data.user.isBusinessInformation,
+          isBusinessKyc: data.user.isBusinessKyc,
+          adminApproval: data.user.adminApproval,
+          createdAt: data.user.createdAt,
+          updatedAt: data.user.updatedAt,
         },
-        // accessToken: data.accessToken,
+        accessToken: data.accessToken,
       };
 
       // Add business details if available
