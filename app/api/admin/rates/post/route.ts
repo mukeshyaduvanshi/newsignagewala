@@ -3,6 +3,7 @@ import connectDB from "@/lib/db/mongodb";
 import MasterRate from "@/lib/models/MasterRate";
 import { verifyAccessToken, extractBearerToken } from "@/lib/auth/jwt";
 import User from "@/lib/models/User";
+import { invalidateRatesCache } from "@/modules/admin/rates/rates.controller";
 
 // Function to convert label name to camelCase
 function generateUniqueKey(labelName: string): string {
@@ -15,7 +16,7 @@ function generateUniqueKey(labelName: string): string {
       }
       return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
     })
-    .join('');
+    .join("");
 }
 
 export async function POST(req: NextRequest) {
@@ -23,13 +24,13 @@ export async function POST(req: NextRequest) {
     await connectDB();
 
     // Get access token from Authorization header
-    const authHeader = req.headers.get('authorization');
+    const authHeader = req.headers.get("authorization");
     const accessToken = extractBearerToken(authHeader);
-    
+
     if (!accessToken) {
       return NextResponse.json(
         { error: "Unauthorized - No token provided" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
     if (!decoded) {
       return NextResponse.json(
         { error: "Unauthorized - Invalid token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -46,76 +47,83 @@ export async function POST(req: NextRequest) {
 
     // Verify user is admin
     const user = await User.findById(userId);
-    if (!user || user.userType !== 'admin') {
+    if (!user || user.userType !== "admin") {
       return NextResponse.json(
         { error: "Access denied - Admin only" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
-    const { labelName, description, rate, measurementUnit, calculateUnit, rateType, width, height, imageUrl } = await req.json();
+    const {
+      labelName,
+      description,
+      rate,
+      measurementUnit,
+      calculateUnit,
+      rateType,
+      width,
+      height,
+      imageUrl,
+    } = await req.json();
 
     // Validation
     if (!labelName) {
       return NextResponse.json(
         { error: "Label name is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (labelName.length < 2) {
       return NextResponse.json(
         { error: "Label name must be at least 2 characters long" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!description) {
       return NextResponse.json(
         { error: "Description is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (description.length < 10) {
       return NextResponse.json(
         { error: "Description must be at least 10 characters long" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (rate === undefined || rate === null) {
-      return NextResponse.json(
-        { error: "Rate is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Rate is required" }, { status: 400 });
     }
 
     if (rate < 0) {
       return NextResponse.json(
         { error: "Rate must be a positive number" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!measurementUnit) {
       return NextResponse.json(
         { error: "Measurement unit is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!calculateUnit) {
       return NextResponse.json(
         { error: "Calculate unit is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!rateType) {
       return NextResponse.json(
         { error: "Rate type is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -123,13 +131,13 @@ export async function POST(req: NextRequest) {
       if (!width || width <= 0) {
         return NextResponse.json(
           { error: "Width is required for fixed rate type" },
-          { status: 400 }
+          { status: 400 },
         );
       }
       if (!height || height <= 0) {
         return NextResponse.json(
           { error: "Height is required for fixed rate type" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -142,8 +150,10 @@ export async function POST(req: NextRequest) {
 
     if (duplicateKey) {
       return NextResponse.json(
-        { error: `This element already exists with the name "${duplicateKey.labelName}". Please use a different label name.` },
-        { status: 400 }
+        {
+          error: `This element already exists with the name "${duplicateKey.labelName}". Please use a different label name.`,
+        },
+        { status: 400 },
       );
     }
 
@@ -165,27 +175,32 @@ export async function POST(req: NextRequest) {
       isUsedInRates: false,
     });
 
+    await invalidateRatesCache(userId).catch(() => {});
+
     return NextResponse.json(
       {
         message: "Master rate created successfully",
         data: masterRate,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: any) {
     console.error("Create master rate error:", error);
-    
+
     // Handle MongoDB duplicate key error
-    if (error.code === 11000 || error.message?.includes('duplicate key')) {
+    if (error.code === 11000 || error.message?.includes("duplicate key")) {
       return NextResponse.json(
-        { error: "This element already exists. Please use a different label name." },
-        { status: 400 }
+        {
+          error:
+            "This element already exists. Please use a different label name.",
+        },
+        { status: 400 },
       );
     }
-    
+
     return NextResponse.json(
       { error: error.message || "Failed to create master rate" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

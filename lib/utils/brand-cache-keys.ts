@@ -61,6 +61,9 @@ export const BrandCacheKeys = {
   checkoutInit: (brandId: string) =>
     `brand:${V}:checkout-init-v2:${validate(brandId, "checkoutInit")}`,
 
+  // --- Sites (per storeId) --------------------------------------------------
+  sites: (storeId: string) => `brand:${V}:sites:${validate(storeId, "sites")}`,
+
   // --- Wildcard patterns (for invalidation) ---------------------------------
   allForBrand: (brandId: string) =>
     `brand:${V}:*:${validate(brandId, "allForBrand")}`,
@@ -72,6 +75,7 @@ export const BrandCacheTTL = {
   orders: 60, // 1 min
   tenders: 120, // 2 min
   stores: 300, // 5 min
+  sites: 300, // 5 min
   racee: 120, // 2 min
   rates: 600, // 10 min
   vendors: 300, // 5 min

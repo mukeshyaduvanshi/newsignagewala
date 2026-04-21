@@ -4,6 +4,7 @@ import RolePermission from "@/lib/models/RolePermission";
 import { verifyAccessToken } from "@/lib/auth/jwt";
 import User from "@/lib/models/User";
 import mongoose from "mongoose";
+import { invalidateRolePermissionsCache } from "@/modules/admin/role-permissions/role-permissions.controller";
 
 export async function DELETE(req: NextRequest) {
   try {
@@ -14,7 +15,7 @@ export async function DELETE(req: NextRequest) {
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json(
         { error: "Unauthorized - No token provided" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -24,16 +25,16 @@ export async function DELETE(req: NextRequest) {
     if (!decoded) {
       return NextResponse.json(
         { error: "Unauthorized - Invalid token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     // Verify user is admin
     const user = await User.findById(decoded.userId);
-    if (!user || user.userType !== 'admin') {
+    if (!user || user.userType !== "admin") {
       return NextResponse.json(
         { error: "Access denied - Admin only" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -43,7 +44,7 @@ export async function DELETE(req: NextRequest) {
     if (!id) {
       return NextResponse.json(
         { error: "Role permission ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -53,7 +54,7 @@ export async function DELETE(req: NextRequest) {
     if (!rolePermission) {
       return NextResponse.json(
         { error: "Role permission not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -61,8 +62,10 @@ export async function DELETE(req: NextRequest) {
     const userId = new mongoose.Types.ObjectId(decoded.userId);
     if (rolePermission.createdId.toString() !== userId.toString()) {
       return NextResponse.json(
-        { error: "Unauthorized - You can only delete your own role permissions" },
-        { status: 403 }
+        {
+          error: "Unauthorized - You can only delete your own role permissions",
+        },
+        { status: 403 },
       );
     }
 
@@ -70,10 +73,11 @@ export async function DELETE(req: NextRequest) {
     if (rolePermission.isUsedInWork) {
       return NextResponse.json(
         {
-          error: "This role permission is currently in use and cannot be deleted",
+          error:
+            "This role permission is currently in use and cannot be deleted",
           isUsedInWork: true,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -81,18 +85,20 @@ export async function DELETE(req: NextRequest) {
     rolePermission.isActive = false;
     await rolePermission.save();
 
+    await invalidateRolePermissionsCache(decoded.userId).catch(() => {});
+
     return NextResponse.json(
       {
         message: "Role permission deleted successfully",
         data: rolePermission,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Error deleting role permission:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

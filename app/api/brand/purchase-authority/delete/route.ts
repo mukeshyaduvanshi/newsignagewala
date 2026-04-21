@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyAccessToken } from "@/lib/auth/jwt";
 import dbConnect from "@/lib/db/mongodb";
 import PurchaseAuthority from "@/lib/models/PurchaseAuthority";
+import { invalidatePurchaseAuthorityCache } from "@/modules/brands/purchase-authority/purchase-authority.controller";
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -11,7 +12,7 @@ export async function DELETE(request: NextRequest) {
     if (!token) {
       return NextResponse.json(
         { error: "Authorization token required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -19,7 +20,7 @@ export async function DELETE(request: NextRequest) {
     if (!decoded || decoded.userType !== "brand") {
       return NextResponse.json(
         { error: "Unauthorized access" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -30,7 +31,7 @@ export async function DELETE(request: NextRequest) {
     if (!id) {
       return NextResponse.json(
         { error: "Purchase authority ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -43,22 +44,24 @@ export async function DELETE(request: NextRequest) {
     if (!authority) {
       return NextResponse.json(
         { error: "Purchase authority not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Soft delete by setting isActive to false
     await PurchaseAuthority.findByIdAndUpdate(id, { isActive: false });
 
+    await invalidatePurchaseAuthorityCache(decoded.userId).catch(() => {});
+
     return NextResponse.json(
       { message: "Purchase authority deactivated successfully" },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Error deleting purchase authority:", error);
     return NextResponse.json(
       { error: error.message || "Failed to delete purchase authority" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

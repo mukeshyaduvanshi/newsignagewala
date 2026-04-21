@@ -6,61 +6,43 @@ import { requireManagerAuth } from "@/lib/auth/manager-auth";
 import bcrypt from "bcryptjs";
 import { sendManagerWelcomeEmail } from "@/lib/email/templates";
 import { verifyAccessToken } from "@/lib/auth/jwt";
+import {
+  getMembersController,
+  invalidateMembersCache,
+} from "@/modules/manager/teams/teams.controller";
 
 // GET - fetch all team members for the logged-in manager (uniqueKey is optional)
 export async function GET(request: NextRequest) {
   try {
     const managerAuth = await requireManagerAuth(request);
 
-    await connectDB();
-
     const searchParams = request.nextUrl.searchParams;
-    const uniqueKey = searchParams.get("uniqueKey"); // optional filter
+    const uniqueKey = searchParams.get("uniqueKey") || undefined;
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
     const status = searchParams.get("status") || "active";
-    const search = searchParams.get("search") || "";
+    const search = searchParams.get("search") || undefined;
 
     if (page < 1 || limit < 1 || limit > 200) {
       return NextResponse.json(
         { success: false, error: "Invalid pagination parameters" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Build query - scope by brand's userId, exclude the logged-in manager's own record
-    const query: any = {
-      parentId: managerAuth.parentId,
-      // userId: { $ne: managerAuth.userId },
-    };
+    const result = await getMembersController(managerAuth.parentId, {
+      uniqueKey,
+      status,
+      search,
+      page,
+      limit,
+    });
 
-    // Filter by uniqueKey only if provided
-    if (uniqueKey) {
-      query.uniqueKey = uniqueKey;
-    }
+    const payload = (result as any).data ?? result;
+    const members = payload.members ?? payload;
+    const total = payload.total ?? members.length;
 
-    if (status !== "all") {
-      query.status = status;
-    }
-
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
-        { phone: { $regex: search, $options: "i" } },
-      ];
-    }
-
-    const skip = (page - 1) * limit;
-    const total = await TeamMember.countDocuments(query);
-
-    const teamMembers = await TeamMember.find(query)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
-
-    const formattedMembers = teamMembers.map((member: any) => ({
+    const formattedMembers = members.map((member: any) => ({
       _id: member._id.toString(),
       parentId: member.parentId.toString(),
       uniqueKey: member.uniqueKey,
@@ -86,18 +68,18 @@ export async function GET(request: NextRequest) {
           totalPages: Math.ceil(total / limit),
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     if (error.status) {
       return NextResponse.json(
         { success: false, error: error.message },
-        { status: error.status }
+        { status: error.status },
       );
     }
     return NextResponse.json(
       { success: false, error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -109,37 +91,36 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
-     const authHeader = request.headers.get("authorization");
-        const accessToken = authHeader?.replace("Bearer ", "");
-    
-        if (!accessToken) {
-          return NextResponse.json(
-            { error: "Unauthorized - No token provided" },
-            { status: 401 }
-          );
-        }
-    
-        // Verify token and get user ID
-        const decoded = verifyAccessToken(accessToken);
-        if (!decoded) {
-          return NextResponse.json(
-            { error: "Unauthorized - Invalid token" },
-            { status: 401 }
-          );
-        }
-    
-        const managerId = decoded.userId;
-    
-        // Verify user is brand
-        const manager = await User.findById(managerId);
-    
-    
-        if (!manager || manager.userType !== "manager") {
-          return NextResponse.json(
-            { error: "Access denied - Manager only" },
-            { status: 403 }
-          );
-        }
+    const authHeader = request.headers.get("authorization");
+    const accessToken = authHeader?.replace("Bearer ", "");
+
+    if (!accessToken) {
+      return NextResponse.json(
+        { error: "Unauthorized - No token provided" },
+        { status: 401 },
+      );
+    }
+
+    // Verify token and get user ID
+    const decoded = verifyAccessToken(accessToken);
+    if (!decoded) {
+      return NextResponse.json(
+        { error: "Unauthorized - Invalid token" },
+        { status: 401 },
+      );
+    }
+
+    const managerId = decoded.userId;
+
+    // Verify user is brand
+    const manager = await User.findById(managerId);
+
+    if (!manager || manager.userType !== "manager") {
+      return NextResponse.json(
+        { error: "Access denied - Manager only" },
+        { status: 403 },
+      );
+    }
 
     const body = await request.json();
     const {
@@ -155,7 +136,7 @@ export async function POST(request: NextRequest) {
     if (!name || !email || !phone || !managerType || !uniqueKey) {
       return NextResponse.json(
         { success: false, error: "All fields are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -163,7 +144,7 @@ export async function POST(request: NextRequest) {
     if (!emailRegex.test(email)) {
       return NextResponse.json(
         { success: false, error: "Invalid email format" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -171,7 +152,7 @@ export async function POST(request: NextRequest) {
     if (!phoneRegex.test(phone)) {
       return NextResponse.json(
         { success: false, error: "Phone must be a valid 10-digit number" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -193,7 +174,7 @@ export async function POST(request: NextRequest) {
       if (existingTeamMember) {
         return NextResponse.json(
           { success: false, error: "This user is already a team member" },
-          { status: 409 }
+          { status: 409 },
         );
       }
 
@@ -262,6 +243,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Invalidate team members cache after adding a new member
+    await invalidateMembersCache(managerAuth.parentId).catch(() => {});
+
     return NextResponse.json(
       {
         success: true,
@@ -272,18 +256,18 @@ export async function POST(request: NextRequest) {
         tempPassword: isNewUser ? "Welcome@123" : undefined,
         isExistingUser: !isNewUser,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: any) {
     if (error.status) {
       return NextResponse.json(
         { success: false, error: error.message },
-        { status: error.status }
+        { status: error.status },
       );
     }
     return NextResponse.json(
       { success: false, error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

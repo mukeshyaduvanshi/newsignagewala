@@ -3,6 +3,7 @@ import { verifyAccessToken } from "@/lib/auth/jwt";
 import User from "@/lib/models/User";
 import Store from "@/lib/models/Store";
 import connectDB from "@/lib/db/mongodb";
+import { invalidateStoresCache } from "@/modules/brands/stores/stores.controller";
 
 export async function PATCH(req: NextRequest) {
   try {
@@ -15,7 +16,7 @@ export async function PATCH(req: NextRequest) {
     if (!accessToken) {
       return NextResponse.json(
         { error: "Unauthorized - No token provided" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -24,7 +25,7 @@ export async function PATCH(req: NextRequest) {
     if (!decoded) {
       return NextResponse.json(
         { error: "Unauthorized - Invalid token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -32,10 +33,10 @@ export async function PATCH(req: NextRequest) {
 
     // Verify user is brand
     const user = await User.findById(userId);
-    if (!user || user.userType !== 'brand') {
+    if (!user || user.userType !== "brand") {
       return NextResponse.json(
         { error: "Access denied - Brand only" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -44,7 +45,7 @@ export async function PATCH(req: NextRequest) {
     if (!storeId) {
       return NextResponse.json(
         { error: "Store ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -56,25 +57,24 @@ export async function PATCH(req: NextRequest) {
     });
 
     if (!store) {
-      return NextResponse.json(
-        { error: "Store not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Store not found" }, { status: 404 });
     }
 
     // Soft delete
     store.isActive = false;
     await store.save();
 
+    await invalidateStoresCache(userId).catch(() => {});
+
     return NextResponse.json(
       { message: "Store deleted successfully" },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Error deleting store:", error);
     return NextResponse.json(
       { error: "Internal server error", details: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
