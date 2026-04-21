@@ -49,3 +49,4 @@ scripts/generate-ssl-cert.js
 scripts/generate-ssl-certi.js
 docs/PRD_SIGNAGEWALA.md
 *.txt
+report.html
