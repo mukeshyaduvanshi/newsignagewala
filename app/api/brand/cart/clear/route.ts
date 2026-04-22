@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db/mongodb";
 import Cart from "@/lib/models/cart.model";
 import { verifyAccessToken } from "@/lib/auth/jwt";
+import { RedisCache } from "@/lib/db/redis";
+import { BrandCacheKeys } from "@/lib/utils/brand-cache-keys";
 
 // POST - Clear entire cart
 export async function POST(req: NextRequest) {
@@ -12,22 +14,19 @@ export async function POST(req: NextRequest) {
     if (!accessToken) {
       return NextResponse.json(
         { error: "Unauthorized - No token provided" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const decoded = verifyAccessToken(accessToken);
     if (!decoded) {
-      return NextResponse.json(
-        { error: "Invalid token" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
     if (decoded.userType !== "brand") {
       return NextResponse.json(
         { error: "Only brands can clear cart" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -38,6 +37,7 @@ export async function POST(req: NextRequest) {
     if (cart) {
       cart.items = [];
       await cart.save();
+      await RedisCache.del(BrandCacheKeys.cart(decoded.userId)).catch(() => {});
     }
 
     return NextResponse.json({
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     console.error("Error clearing cart:", error);
     return NextResponse.json(
       { error: error.message || "Failed to clear cart" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

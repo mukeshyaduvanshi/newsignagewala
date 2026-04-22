@@ -3,6 +3,7 @@ import dbConnect from "@/lib/db/mongodb";
 import Order from "@/lib/models/Order";
 import { verifyAccessToken } from "@/lib/auth/jwt";
 import { ObjectId } from "mongodb";
+import { invalidateBrandOrdersCache } from "@/modules/manager/cache-invalidation";
 
 // OpenJobCards model (inline for now)
 import mongoose from "mongoose";
@@ -156,6 +157,9 @@ export async function POST(request: NextRequest) {
     // Don't update order with openjobcardsId - we can have multiple job cards
     // order.openjobcardsId = openJobCard._id;
     // await order.save();
+
+    // Clear brand order cache so brand sees the new job card immediately
+    await invalidateBrandOrdersCache(order.brandId?.toString()).catch(() => {});
 
     console.log("Create Job Card - Created successfully");
 

@@ -3,6 +3,7 @@ import { verifyAccessToken } from "@/lib/auth/jwt";
 import connectDB from "@/lib/db/mongodb";
 import User from "@/lib/models/User";
 import BusinessKYC from "@/lib/models/BusinessKyc";
+import { invalidateAdminUserCaches } from "@/modules/manager/cache-invalidation";
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
     if (!accessToken) {
       return NextResponse.json(
         { error: "Unauthorized - No token provided" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -24,16 +25,16 @@ export async function POST(req: NextRequest) {
     if (!decoded) {
       return NextResponse.json(
         { error: "Unauthorized - Invalid token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     // Verify user is admin
     const admin = await User.findById(decoded.userId);
-    if (!admin || admin.userType !== 'admin') {
+    if (!admin || admin.userType !== "admin") {
       return NextResponse.json(
         { error: "Access denied - Admin only" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -42,17 +43,14 @@ export async function POST(req: NextRequest) {
     if (!userId) {
       return NextResponse.json(
         { error: "User ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Find the user to approve
     const user = await User.findById(userId);
     if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Get user's KYC data
@@ -60,7 +58,7 @@ export async function POST(req: NextRequest) {
     if (!kyc) {
       return NextResponse.json(
         { error: "KYC data not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -74,23 +72,25 @@ export async function POST(req: NextRequest) {
     user.adminApproval = true;
     await user.save();
 
+    await invalidateAdminUserCaches().catch(() => {});
+
     return NextResponse.json(
-      { 
+      {
         message: "User approved successfully",
         user: {
           id: user._id,
           name: user.name,
           email: user.email,
           adminApproval: user.adminApproval,
-        }
+        },
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
     console.error("Error approving user:", error);
     return NextResponse.json(
       { error: "Internal server error", details: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

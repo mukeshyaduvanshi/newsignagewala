@@ -4,6 +4,8 @@ import RolePermission from "@/lib/models/RolePermission";
 import { verifyAccessToken } from "@/lib/auth/jwt";
 import User from "@/lib/models/User";
 import mongoose from "mongoose";
+import { RedisCache } from "@/lib/db/redis";
+import { AdminCacheKeys } from "@/lib/utils/admin-cache-keys";
 
 export async function PUT(req: NextRequest) {
   try {
@@ -120,6 +122,10 @@ export async function PUT(req: NextRequest) {
           permissions,
         },
       },
+    );
+
+    await RedisCache.del(AdminCacheKeys.rolePermissions(decoded.userId)).catch(
+      () => {},
     );
 
     return NextResponse.json(

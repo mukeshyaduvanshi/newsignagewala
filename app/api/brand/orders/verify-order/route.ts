@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db/mongodb";
 import { verifyAccessToken } from "@/lib/auth/jwt";
 import Order from "@/lib/models/Order";
+import {
+  invalidateBrandOrdersCache,
+  invalidateVendorOrdersCache,
+} from "@/modules/manager/cache-invalidation";
 
 export async function POST(req: NextRequest) {
   try {
@@ -57,6 +61,11 @@ export async function POST(req: NextRequest) {
     }
 
     await order.save();
+
+    await invalidateBrandOrdersCache(decoded.userId).catch(() => {});
+    await invalidateVendorOrdersCache(order.vendorId?.toString()).catch(
+      () => {},
+    );
 
     return NextResponse.json({
       success: true,

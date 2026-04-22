@@ -8,6 +8,8 @@ import {
   checkRateLimit,
   rateLimitExceededResponse,
 } from "@/lib/utils/rate-limit";
+import { RedisCache } from "@/lib/db/redis";
+import { ManagerCacheKeys } from "@/lib/utils/manager-cache-keys";
 
 // GET - Fetch store manager assignments
 export async function GET(req: NextRequest) {
@@ -333,6 +335,13 @@ export async function POST(req: NextRequest) {
           isStoreUsed: false,
         });
 
+        // Clear manager store cache so they see the new assignment immediately
+        if (assignment.managerUserId) {
+          await RedisCache.del(
+            ManagerCacheKeys.stores(assignment.managerUserId.toString()),
+          ).catch(() => {});
+        }
+
         results.created++;
       } catch (error: any) {
         console.error(`Error creating assignment ${i + 1}:`, error);
@@ -433,6 +442,9 @@ export async function PUT(req: NextRequest) {
     if (typeof isStoreUsed === "boolean") {
       assignment.isStoreUsed = isStoreUsed;
       await assignment.save();
+      await RedisCache.del(
+        ManagerCacheKeys.stores(assignment.managerUserId?.toString()),
+      ).catch(() => {});
     }
 
     return NextResponse.json(

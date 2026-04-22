@@ -4,6 +4,7 @@ import UserRole from "@/lib/models/UserRole";
 import { verifyAccessToken, extractBearerToken } from "@/lib/auth/jwt";
 import { invalidateUserRolesCache } from "@/modules/brands/user-roles/user-roles.controller";
 import { invalidateManagerSidebarCacheByParent } from "@/modules/manager/cache-invalidation";
+import { invalidateCache } from "@/lib/cache/with-cache";
 
 export async function DELETE(req: NextRequest) {
   try {
@@ -82,6 +83,9 @@ export async function DELETE(req: NextRequest) {
     // 🔥 INVALIDATE CACHE - Force refetch on next request
     await invalidateUserRolesCache(decoded.userId).catch(() => {});
     await invalidateManagerSidebarCacheByParent(decoded.userId).catch(() => {});
+    await invalidateCache(`brand:authorities:v1:${decoded.userId}`).catch(
+      () => {},
+    );
 
     return NextResponse.json(
       {

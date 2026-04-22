@@ -7,6 +7,7 @@ import {
   invalidateOrdersCache,
   publishOrdersUpdate,
 } from "@/modules/vendor/orders/orders.controller";
+import { invalidateBrandOrdersCache } from "@/modules/manager/cache-invalidation";
 
 export async function POST(request: NextRequest) {
   try {
@@ -67,6 +68,7 @@ export async function POST(request: NextRequest) {
     await order.save();
 
     await invalidateOrdersCache(decoded.userId);
+    await invalidateBrandOrdersCache(order.brandId?.toString());
     await publishOrdersUpdate(decoded.userId);
 
     return NextResponse.json(

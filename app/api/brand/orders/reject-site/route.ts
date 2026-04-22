@@ -3,6 +3,10 @@ import dbConnect from "@/lib/db/mongodb";
 import { verifyAccessToken } from "@/lib/auth/jwt";
 import Order from "@/lib/models/Order";
 import InstallationCertificate from "@/lib/models/InstallationCertificate";
+import {
+  invalidateBrandOrdersCache,
+  invalidateVendorOrdersCache,
+} from "@/modules/manager/cache-invalidation";
 
 export async function POST(req: NextRequest) {
   try {
@@ -62,6 +66,11 @@ export async function POST(req: NextRequest) {
     }
 
     await order.save();
+
+    await invalidateBrandOrdersCache(decoded.userId).catch(() => {});
+    await invalidateVendorOrdersCache(order.vendorId?.toString()).catch(
+      () => {},
+    );
 
     // Find and update installation certificates with this site
     const installCerts = await InstallationCertificate.find({

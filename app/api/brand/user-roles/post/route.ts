@@ -4,6 +4,7 @@ import UserRole from "@/lib/models/UserRole";
 import { verifyAccessToken, extractBearerToken } from "@/lib/auth/jwt";
 import { invalidateUserRolesCache } from "@/modules/brands/user-roles/user-roles.controller";
 import { invalidateManagerSidebarCacheByParent } from "@/modules/manager/cache-invalidation";
+import { invalidateCache } from "@/lib/cache/with-cache";
 
 // Function to convert label name to camelCase
 function generateUniqueKey(labelName: string): string {
@@ -86,6 +87,7 @@ export async function POST(req: NextRequest) {
     // 🔥 INVALIDATE CACHE - Force refetch on next request
     await invalidateUserRolesCache(userId).catch(() => {});
     await invalidateManagerSidebarCacheByParent(userId).catch(() => {});
+    await invalidateCache(`brand:authorities:v1:${userId}`).catch(() => {});
 
     return NextResponse.json(
       {

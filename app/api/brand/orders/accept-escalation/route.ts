@@ -5,6 +5,10 @@ import Order from "@/lib/models/Order";
 import PurchaseAuthority from "@/lib/models/PurchaseAuthority";
 import { verifyAccessToken } from "@/lib/auth/jwt";
 import { priceCalculatorNumber } from "@/lib/utils/priceCalculator";
+import {
+  invalidateBrandOrdersCache,
+  invalidateVendorOrdersCache,
+} from "@/modules/manager/cache-invalidation";
 
 export async function POST(request: NextRequest) {
   try {
@@ -191,6 +195,11 @@ export async function POST(request: NextRequest) {
       order.orderStatus = "completed";
     }
     await order.save();
+
+    await invalidateBrandOrdersCache(brandId).catch(() => {});
+    await invalidateVendorOrdersCache(
+      order.vendorId?._id?.toString() || order.vendorId?.toString(),
+    ).catch(() => {});
 
     return NextResponse.json({
       success: true,

@@ -3,6 +3,8 @@ import { verifyAccessToken } from "@/lib/auth/jwt";
 import connectDB from "@/lib/db/mongodb";
 import Store from "@/lib/models/Store";
 import { generateUniqueKey } from "@/lib/utils/generateUniqueKey";
+import { RedisCache } from "@/lib/db/redis";
+import { BrandCacheKeys } from "@/lib/utils/brand-cache-keys";
 
 export async function POST(req: NextRequest) {
   try {
@@ -116,6 +118,13 @@ export async function POST(req: NextRequest) {
           error: error.message || "Failed to create store",
         });
       }
+    }
+
+    // Clear brand store cache so the new stores are visible immediately
+    if (createdStores.length > 0) {
+      await RedisCache.del(BrandCacheKeys.stores(decoded.userId)).catch(
+        () => {},
+      );
     }
 
     return NextResponse.json(
