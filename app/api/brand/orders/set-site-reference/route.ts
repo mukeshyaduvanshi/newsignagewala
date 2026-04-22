@@ -6,6 +6,7 @@ import Site from "@/lib/models/Site";
 import {
   invalidateBrandOrdersCache,
   invalidateVendorOrdersCache,
+  invalidateManagerOrdersCacheByCreativeId,
 } from "@/modules/manager/cache-invalidation";
 
 export async function POST(req: NextRequest) {
@@ -89,6 +90,9 @@ export async function POST(req: NextRequest) {
     await invalidateVendorOrdersCache(order.vendorId?.toString()).catch(
       () => {},
     );
+    await invalidateManagerOrdersCacheByCreativeId(
+      order.creativeManagerId?.toString(),
+    ).catch(() => {});
 
     return NextResponse.json({
       success: true,

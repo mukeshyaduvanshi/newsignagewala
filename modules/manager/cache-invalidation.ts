@@ -48,6 +48,38 @@ export async function invalidateAdminUserCaches(): Promise<void> {
   ]);
 }
 
+/**
+ * Clear manager's own order cache — called when manager mutates an order
+ * so the manager's own order list refreshes.
+ */
+export async function invalidateManagerOrdersCache(
+  managerId: string,
+): Promise<void> {
+  if (!managerId) return;
+  await RedisCache.del(ManagerCacheKeys.orders(managerId)).catch(() => {});
+}
+
+/**
+ * Clear the manager order cache when brand/vendor changes an order that has
+ * a creativeManagerId set. Looks up the manager userId from TeamMember.
+ */
+export async function invalidateManagerOrdersCacheByCreativeId(
+  creativeManagerId: string | null | undefined,
+): Promise<void> {
+  if (!creativeManagerId) return;
+  try {
+    const teamMember = (await TeamMember.findById(creativeManagerId)
+      .select("userId")
+      .lean()) as any;
+    if (!teamMember?.userId) return;
+    await RedisCache.del(
+      ManagerCacheKeys.orders(teamMember.userId.toString()),
+    ).catch(() => {});
+  } catch {
+    // non-critical
+  }
+}
+
 export async function invalidateManagerSidebarCacheByParent(parentId: string) {
   if (!parentId) return;
 

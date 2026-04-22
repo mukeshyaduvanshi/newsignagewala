@@ -7,6 +7,8 @@ import {
   invalidateTendersCache,
   publishTendersUpdate,
 } from "@/modules/vendor/tenders/tenders.controller";
+import { RedisCache } from "@/lib/db/redis";
+import { BrandCacheKeys } from "@/lib/utils/brand-cache-keys";
 
 export async function POST(request: NextRequest) {
   try {
@@ -75,6 +77,9 @@ export async function POST(request: NextRequest) {
     await tender.save();
 
     await invalidateTendersCache(decoded.userId);
+    await RedisCache.del(
+      BrandCacheKeys.tenders(tender.brandId?.toString()),
+    ).catch(() => {});
     await publishTendersUpdate(decoded.userId);
 
     return NextResponse.json(

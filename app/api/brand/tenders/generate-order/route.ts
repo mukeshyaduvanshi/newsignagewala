@@ -3,6 +3,13 @@ import connectDB from "@/lib/db/mongodb";
 import Tender from "@/lib/models/Tender";
 import Order from "@/lib/models/Order";
 import { verifyAccessToken } from "@/lib/auth/jwt";
+import { RedisCache } from "@/lib/db/redis";
+import { BrandCacheKeys } from "@/lib/utils/brand-cache-keys";
+import {
+  invalidateBrandOrdersCache,
+  invalidateVendorOrdersCache,
+  invalidateVendorTendersCache,
+} from "@/modules/manager/cache-invalidation";
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,7 +32,7 @@ export async function POST(req: NextRequest) {
     if (!tenderId) {
       return NextResponse.json(
         { error: "Tender ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -38,7 +45,7 @@ export async function POST(req: NextRequest) {
     if (!tender) {
       return NextResponse.json(
         { error: "Tender not found or unauthorized" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -46,7 +53,7 @@ export async function POST(req: NextRequest) {
     if (!tender.acceptedVendorId) {
       return NextResponse.json(
         { error: "No vendor has been accepted for this tender yet" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -54,7 +61,7 @@ export async function POST(req: NextRequest) {
     const now = new Date();
     const month = String(now.getMonth() + 1).padStart(2, "0");
     const year = String(now.getFullYear()).slice(-2);
-    
+
     // Find existing orders for this month and year
     const existingOrders = await Order.find({
       orderNumber: new RegExp(`^ORD-${month}${year}-`),
@@ -113,18 +120,30 @@ export async function POST(req: NextRequest) {
     // Create the order
     const order = await Order.create(orderData);
 
+    // Clear caches for all affected parties
+    await invalidateBrandOrdersCache(decoded.userId).catch(() => {});
+    await RedisCache.del(BrandCacheKeys.tenders(decoded.userId)).catch(
+      () => {},
+    );
+    await invalidateVendorOrdersCache(
+      tender.acceptedVendorId?.toString(),
+    ).catch(() => {});
+    await invalidateVendorTendersCache(
+      tender.acceptedVendorId?.toString(),
+    ).catch(() => {});
+
     return NextResponse.json(
       {
         message: "Order generated successfully from tender",
         order,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: any) {
     console.error("Error generating order from tender:", error);
     return NextResponse.json(
       { error: error.message || "Failed to generate order" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

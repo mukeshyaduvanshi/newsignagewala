@@ -4,6 +4,11 @@ import Order from "@/lib/models/Order";
 import { requireManagerAuth } from "@/lib/auth/manager-auth";
 import { uploadToVercelBlob } from "@/lib/utils/uploadToBlob";
 import mongoose from "mongoose";
+import { invalidateOrdersCache } from "@/modules/manager/orders/orders.controller";
+import {
+  invalidateBrandOrdersCache,
+  invalidateVendorOrdersCache,
+} from "@/modules/manager/cache-invalidation";
 
 export async function POST(req: NextRequest) {
   try {
@@ -74,6 +79,12 @@ export async function POST(req: NextRequest) {
 
     // Save the order
     await order.save();
+
+    await invalidateOrdersCache(managerAuth.userId).catch(() => {});
+    await invalidateBrandOrdersCache(order.brandId?.toString()).catch(() => {});
+    await invalidateVendorOrdersCache(order.vendorId?.toString()).catch(
+      () => {},
+    );
 
     return NextResponse.json({
       success: true,

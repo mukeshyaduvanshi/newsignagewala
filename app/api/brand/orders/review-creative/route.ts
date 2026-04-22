@@ -5,6 +5,7 @@ import { verifyAccessToken } from "@/lib/auth/jwt";
 import {
   invalidateBrandOrdersCache,
   invalidateVendorOrdersCache,
+  invalidateManagerOrdersCacheByCreativeId,
 } from "@/modules/manager/cache-invalidation";
 
 export async function POST(request: NextRequest) {

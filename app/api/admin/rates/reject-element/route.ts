@@ -3,6 +3,7 @@ import { verifyAccessToken } from "@/lib/auth/jwt";
 import dbConnect from "@/lib/db/mongodb";
 import BrandRate from "@/lib/models/BrandRate";
 import VendorRate from "@/lib/models/VendorRate";
+import { invalidateRatesCache } from "@/modules/admin/rates/rates.controller";
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
     if (!decoded || decoded.userType !== "admin") {
       return NextResponse.json(
         { error: "Unauthorized - Admin only" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
     if (!requestId || !source) {
       return NextResponse.json(
         { error: "Request ID and source are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -47,6 +48,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid source" }, { status: 400 });
     }
 
+    await invalidateRatesCache(decoded.userId).catch(() => {});
+
     return NextResponse.json({
       success: true,
       message: "Element request rejected",
@@ -55,7 +58,7 @@ export async function POST(request: NextRequest) {
     console.error("Error rejecting element:", error);
     return NextResponse.json(
       { error: error.message || "Failed to reject element" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -6,6 +6,7 @@ import InstallationCertificate from "@/lib/models/InstallationCertificate";
 import {
   invalidateBrandOrdersCache,
   invalidateVendorOrdersCache,
+  invalidateManagerOrdersCacheByCreativeId,
 } from "@/modules/manager/cache-invalidation";
 
 export async function POST(req: NextRequest) {
@@ -71,6 +72,9 @@ export async function POST(req: NextRequest) {
     await invalidateVendorOrdersCache(order.vendorId?.toString()).catch(
       () => {},
     );
+    await invalidateManagerOrdersCacheByCreativeId(
+      order.creativeManagerId?.toString(),
+    ).catch(() => {});
 
     // Find and update installation certificates with this site
     const installCerts = await InstallationCertificate.find({

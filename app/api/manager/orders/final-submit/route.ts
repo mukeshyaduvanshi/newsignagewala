@@ -3,6 +3,11 @@ import connectDB from "@/lib/db/mongodb";
 import Order from "@/lib/models/Order";
 import { requireManagerAuth } from "@/lib/auth/manager-auth";
 import mongoose from "mongoose";
+import { invalidateOrdersCache } from "@/modules/manager/orders/orders.controller";
+import {
+  invalidateBrandOrdersCache,
+  invalidateVendorOrdersCache,
+} from "@/modules/manager/cache-invalidation";
 
 export async function PATCH(req: NextRequest) {
   try {
@@ -47,6 +52,12 @@ export async function PATCH(req: NextRequest) {
     // Update order status to "creativeAdapted"
     order.orderStatus = "creativeAdapted";
     await order.save();
+
+    await invalidateOrdersCache(managerAuth.userId).catch(() => {});
+    await invalidateBrandOrdersCache(order.brandId?.toString()).catch(() => {});
+    await invalidateVendorOrdersCache(order.vendorId?.toString()).catch(
+      () => {},
+    );
 
     return NextResponse.json({
       success: true,
