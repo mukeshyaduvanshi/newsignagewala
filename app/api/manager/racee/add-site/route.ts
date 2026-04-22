@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/db/mongodb';
-import Racee from '@/lib/models/Racee';
-import { getManagerAuth } from '@/lib/auth/manager-auth';
+import { NextRequest, NextResponse } from "next/server";
+import dbConnect from "@/lib/db/mongodb";
+import Racee from "@/lib/models/Racee";
+import { getManagerAuth } from "@/lib/auth/manager-auth";
+import { invalidateRaceeCache as invalidateManagerRaceeCache } from "@/modules/manager/racee/racee.controller";
+import { invalidateRaceeCache as invalidateBrandRaceeCache } from "@/modules/brands/racee/racee.controller";
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,25 +12,24 @@ export async function POST(req: NextRequest) {
     // Verify authentication
     const managerAuth = await getManagerAuth(req);
     if (!managerAuth) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { raceeId, site } = await req.json();
 
     if (!raceeId || !site) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
+        { error: "Missing required fields" },
+        { status: 400 },
       );
     }
 
     console.log({ raceeId, site });
 
-
     // Find the racee
     const racee = await Racee.findById(raceeId);
     if (!racee) {
-      return NextResponse.json({ error: 'Racee not found' }, { status: 404 });
+      return NextResponse.json({ error: "Racee not found" }, { status: 404 });
     }
 
     // Initialize sites array if it doesn't exist
@@ -42,18 +43,21 @@ export async function POST(req: NextRequest) {
     // Save the racee
     await racee.save();
 
+    await invalidateManagerRaceeCache(managerAuth.userId).catch(() => {});
+    await invalidateBrandRaceeCache(racee.parentId?.toString()).catch(() => {});
+
     return NextResponse.json(
       {
-        message: 'Site added successfully',
+        message: "Site added successfully",
         racee,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: any) {
-    console.error('Error adding site to racee:', error);
+    console.error("Error adding site to racee:", error);
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: error.status || 500 }
+      { error: error.message || "Internal server error" },
+      { status: error.status || 500 },
     );
   }
 }

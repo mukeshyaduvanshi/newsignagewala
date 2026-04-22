@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import Racee from '@/lib/models/Racee';
-import { getManagerAuth } from '@/lib/auth/manager-auth';
-
+import { NextRequest, NextResponse } from "next/server";
+import connectDB from "@/lib/db/mongodb";
+import Racee from "@/lib/models/Racee";
+import { getManagerAuth } from "@/lib/auth/manager-auth";
+import { invalidateRaceeCache as invalidateManagerRaceeCache } from "@/modules/manager/racee/racee.controller";
+import { invalidateRaceeCache as invalidateBrandRaceeCache } from "@/modules/brands/racee/racee.controller";
 
 export async function DELETE(req: NextRequest) {
   try {
@@ -11,15 +12,15 @@ export async function DELETE(req: NextRequest) {
     // Verify authentication
     const managerAuth = await getManagerAuth(req);
     if (!managerAuth) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { raceeId, siteId } = await req.json();
 
     if (!raceeId || !siteId) {
       return NextResponse.json(
-        { error: 'Racee ID and Site ID are required' },
-        { status: 400 }
+        { error: "Racee ID and Site ID are required" },
+        { status: 400 },
       );
     }
 
@@ -27,34 +28,37 @@ export async function DELETE(req: NextRequest) {
     const racee = await Racee.findById(raceeId);
 
     if (!racee) {
-      return NextResponse.json({ error: 'Racee not found' }, { status: 404 });
+      return NextResponse.json({ error: "Racee not found" }, { status: 404 });
     }
 
     // Check if the user is the manager of this racee
     if (racee.managerUserId.toString() !== managerAuth.userId) {
       return NextResponse.json(
-        { error: 'You are not authorized to delete this site' },
-        { status: 403 }
+        { error: "You are not authorized to delete this site" },
+        { status: 403 },
       );
     }
 
     // Remove the site from the sites array
     racee.sites = racee.sites.filter(
-      (site: any) => site._id.toString() !== siteId
+      (site: any) => site._id.toString() !== siteId,
     );
 
     await racee.save();
 
+    await invalidateManagerRaceeCache(managerAuth.userId).catch(() => {});
+    await invalidateBrandRaceeCache(racee.parentId?.toString()).catch(() => {});
+
     return NextResponse.json({
       success: true,
-      message: 'Site deleted successfully',
+      message: "Site deleted successfully",
       racee,
     });
   } catch (error: any) {
-    console.error('Error deleting site:', error);
+    console.error("Error deleting site:", error);
     return NextResponse.json(
-      { error: error.message || 'Failed to delete site' },
-      { status: error.status || 500 }
+      { error: error.message || "Failed to delete site" },
+      { status: error.status || 500 },
     );
   }
 }
