@@ -10,6 +10,7 @@ import mongoose from "mongoose";
 export async function getOrdersByManager(
   managerId: string,
   teamMemberId?: string,
+  parentId?: string,
 ) {
   await dbConnect();
 
@@ -19,10 +20,9 @@ export async function getOrdersByManager(
     resolvedTeamMemberId = new mongoose.Types.ObjectId(teamMemberId);
   } else {
     const managerUserObjectId = new mongoose.Types.ObjectId(managerId);
-    const teamMember = await TeamMember.findOne({
-      userId: managerUserObjectId,
-      status: "active",
-    });
+    const query: any = { userId: managerUserObjectId, status: "active" };
+    if (parentId) query.parentId = new mongoose.Types.ObjectId(parentId);
+    const teamMember = await TeamMember.findOne(query);
     if (!teamMember) return [];
     resolvedTeamMemberId = teamMember._id;
   }

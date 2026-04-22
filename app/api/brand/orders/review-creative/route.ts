@@ -68,6 +68,9 @@ export async function POST(request: NextRequest) {
     await invalidateVendorOrdersCache(order.vendorId?.toString()).catch(
       () => {},
     );
+    await invalidateManagerOrdersCacheByCreativeId(
+      order.creativeManagerId?.toString(),
+    ).catch(() => {});
 
     return NextResponse.json({
       success: true,

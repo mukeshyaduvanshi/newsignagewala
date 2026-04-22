@@ -17,6 +17,7 @@ import {
   generateOrderNumber,
   CreateOrderInput,
 } from "./orders.service";
+import { invalidateManagerOrdersCacheByCreativeId } from "@/modules/manager/cache-invalidation";
 
 export async function getOrdersController(brandId: string) {
   const cacheKey = BrandCacheKeys.orders(brandId);
@@ -39,6 +40,13 @@ export async function createOrderController(
   await RedisCache.del(BrandCacheKeys.orders(brandId));
   await RedisCache.del(BrandCacheKeys.cart(brandId));
   await RedisCache.del(BrandCacheKeys.purchaseAuthority(brandId));
+
+  // Invalidate manager orders cache so manager sees this order immediately
+  if (body.creativeManagerId) {
+    await invalidateManagerOrdersCacheByCreativeId(
+      body.creativeManagerId,
+    ).catch(() => {});
+  }
 
   // Notify SSE subscribers
   await publish(BrandSSEChannels.orders(brandId), {

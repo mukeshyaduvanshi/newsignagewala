@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
     const result = await getOrdersController(
       managerAuth.userId,
       managerAuth.teamMemberId,
+      managerAuth.parentId,
     );
 
     const orders = (result as any).data ?? result;

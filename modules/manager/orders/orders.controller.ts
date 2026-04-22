@@ -14,10 +14,11 @@ import { getOrdersByManager } from "./orders.service";
 export async function getOrdersController(
   managerId: string,
   teamMemberId?: string,
+  parentId?: string,
 ) {
   return getOrSetCache(
     ManagerCacheKeys.orders(managerId),
-    () => getOrdersByManager(managerId, teamMemberId),
+    () => getOrdersByManager(managerId, teamMemberId, parentId),
     ManagerCacheTTL.orders,
     `Orders[manager:${managerId}]`,
   );
